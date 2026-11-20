@@ -28,6 +28,22 @@ Docker, puedes iniciar el tablero sin descargar las fuentes, ejecutar los
 pipelines ni configurar claves de API. Los mapas usan la cartografía incluida
 y funcionan sin teselas en este modo.
 
+### Tu primera consulta
+
+1. En **Resumen**, elige **Consulta tu localidad**. La vista se abre con el
+   filtro **Todas**.
+2. Escribe el nombre de tu comunidad en **Buscar por localidad o clave**.
+   Si hay nombres repetidos, confirma el municipio o la clave INEGI. Por
+   ejemplo, la ciudad de Hermosillo tiene la clave `260300001`.
+3. Lee el tiempo en la tarjeta **Hospital**. Debajo aparece la unidad de
+   referencia y el método que se usó para obtener el tiempo.
+
+![Ficha de Hermosillo con el tiempo al hospital y el método de cálculo](docs/tablero-primera-consulta.png)
+
+La captura usa el corte de datos **0.1.1**, generado el **20 de noviembre de
+2026 (UTC)**. La fecha corresponde a la preparación del paquete. El
+manifiesto registra los años y fechas de cada fuente.
+
 El [manifiesto de datos](datos_mvp/manifest.json) registra la versión, las
 fuentes, las fechas y el SHA-256 de cada archivo. Los datos ENIGH de esta
 versión son estimaciones puntuales de 2020, 2022 y 2024, calculadas sin
@@ -44,10 +60,20 @@ manifiesto y en la vista de calidad.
 2. Ejecuta `python -m enigh.pipeline` desde `enigh-sonora-main`. Puedes añadir
    `--sin-bootstrap` para generar estimaciones puntuales. Con Docker, el
    equivalente es `docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm -w /project/enigh-sonora-main app python -m enigh.pipeline`.
-3. Desde la raíz, genera una nueva versión y comprueba el inventario publicado.
+3. Desde la raíz, genera y revisa el reporte de comparación sin sustituir la
+   versión vigente. El reporte queda en `data/calidad/comparacion_mvp.md`.
+   Resume archivos y fuentes, cambios de localidades, claves que no cruzan y
+   cobertura por método. Los datos inválidos, como claves duplicadas, columnas
+   obligatorias ausentes y tiempos negativos, bloquean la publicación.
 
    ```powershell
-   python -m health_data.publicar_mvp --version 0.1.1
+   python -m health_data.publicar_mvp --version 0.1.2 --solo-reporte
+   ```
+
+4. Revisa las alertas y publica el candidato cuando esté listo.
+
+   ```powershell
+   python -m health_data.publicar_mvp --version 0.1.2
    python -m health_data.publicar_mvp --verificar
    ```
 

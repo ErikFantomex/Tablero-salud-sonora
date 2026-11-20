@@ -15,7 +15,7 @@ from uuid import uuid4
 
 import pandas as pd
 
-from health_data import config, territorio
+from health_data import comparar_mvp, config, territorio
 from health_data.ingestion.sakbe import ARCHIVO_CACHE
 
 RAIZ = config.PROJECT_ROOT
@@ -43,6 +43,7 @@ SALUD = {
 AGREGADOS_ENIGH = ("bienestar_sonora", "deciles_nacionales", "deciles_sonora", "municipios_sonora")
 SERIES_ENIGH = ("serie_deciles_sonora", "serie_desigualdad")
 ESTIMACION_MUNICIPAL = ("ing_pc", "ing_pc_ic_inferior", "ing_pc_ic_superior", "ing_pc_cv")
+REPORTE_COMPARACION = RAIZ / "data" / "calidad" / "comparacion_mvp.md"
 
 
 def huella(ruta: Path) -> str:
@@ -77,6 +78,8 @@ def exportar_municipios(origen: Path, ruta: Path, minimo: int) -> None:
     tabla = pd.read_parquet(origen)
     estimaciones = [c for c in ESTIMACION_MUNICIPAL if c in tabla]
     obligatorias = ["clave_cvegeo", "n_hogares", "n_upm", "fiable"]
+    if faltantes := set([*obligatorias, "ing_pc"]) - set(tabla):
+        raise ValueError(f"{origen.name}: faltan columnas obligatorias: {', '.join(sorted(faltantes))}.")
     calidad = ["ing_pc_fiable"] if "ing_pc_fiable" in tabla else []
     tabla = tabla[obligatorias + calidad + estimaciones].copy()
     publicar = tabla["n_hogares"].ge(minimo) & tabla["fiable"].eq(True)
@@ -207,11 +210,17 @@ def verificar(directorio: Path = DESTINO) -> None:
         ruta = directorio / nombre
         if ruta.stat().st_size != registro["bytes"] or huella(ruta) != registro["sha256"]:
             raise ValueError(f"No coincide la suma de verificación: {nombre}")
+    salud = comparar_mvp.leer_salud(directorio)
+    comparar_mvp.validar_enigh(directorio)
+    comparar_mvp.cruces(directorio, set(salud["locality_id"]))
 
 
-def generar(version: str) -> None:
+def generar(version: str, *, solo_reporte: bool = False, reporte: Path = REPORTE_COMPARACION) -> Path | None:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", version):
         raise ValueError("Indica una versión de hasta 64 caracteres, por ejemplo 0.1.0.")
+    reporte = reporte.resolve()
+    if reporte.is_relative_to(DESTINO.resolve()):
+        raise ValueError("Guarda el reporte fuera de datos_mvp/ para conservar su inventario.")
     respaldo = RAIZ / ".datos_mvp-anterior"
     candado = RAIZ / ".datos_mvp-lock"
     # Impide que dos procesos de publicación sustituyan la versión a la vez.
@@ -227,8 +236,16 @@ def generar(version: str) -> None:
         try:
             preparar_copia(copia, version)
             verificar(copia)
-            if DESTINO.exists():
+            habia_publicacion = DESTINO.exists()
+            if habia_publicacion:
+                resultado = comparar_mvp.comparar(DESTINO, copia)
+                reporte.parent.mkdir(parents=True, exist_ok=True)
+                reporte.write_text(resultado, encoding="utf-8")
+                if solo_reporte:
+                    return reporte
                 DESTINO.rename(respaldo)
+            elif solo_reporte:
+                raise ValueError("Falta la versión publicada de datos_mvp/ para hacer la comparación.")
             try:
                 copia.rename(DESTINO)
             except BaseException:
@@ -237,6 +254,7 @@ def generar(version: str) -> None:
                 raise
             if respaldo.is_dir() and respaldo.resolve().parent == RAIZ:
                 shutil.rmtree(respaldo)
+            return reporte if habia_publicacion else None
         finally:
             if copia.is_dir() and copia.resolve().parent == RAIZ:
                 shutil.rmtree(copia)
@@ -249,12 +267,21 @@ def main() -> None:
     accion = parser.add_mutually_exclusive_group(required=True)
     accion.add_argument("--version", metavar="VERSIÓN", help="Prepara una copia con esta versión.")
     accion.add_argument("--verificar", action="store_true", help="Verifica el inventario y los archivos existentes.")
+    parser.add_argument("--solo-reporte", action="store_true", help="Compara el candidato sin sustituir datos_mvp/.")
+    parser.add_argument("--reporte", type=Path, help="Destino Markdown del reporte de comparación.")
     args = parser.parse_args()
+    if args.verificar and (args.solo_reporte or args.reporte):
+        parser.error("--solo-reporte y --reporte se usan con --version.")
     try:
         if args.verificar:
             verificar()
         else:
-            generar(args.version)
+            ruta = generar(args.version, solo_reporte=args.solo_reporte, reporte=args.reporte or REPORTE_COMPARACION)
+            if ruta is not None:
+                print(f"Reporte de comparación: {ruta}")
+            if args.solo_reporte:
+                print("Candidato validado. La versión publicada de datos_mvp/ sigue disponible.")
+                return
     except (KeyError, ValueError, OSError) as exc:
         parser.exit(1, f"Error de datos MVP: {exc}\n")
     print(f"Datos MVP verificados en {DESTINO.relative_to(RAIZ)}.")

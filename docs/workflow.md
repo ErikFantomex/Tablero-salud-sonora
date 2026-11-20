@@ -62,6 +62,7 @@ en el catálogo hasta conseguir un corte público reciente de recursos hospitala
 | [Accesibilidad, transporte y marginación](../notebooks/3.0-eda-accesibilidad-transporte-marginacion.ipynb) | Tabla de accesibilidad, RESLOC y CONAPO. Cobertura del cruce, doble barrera, mapa, ranking municipal y sensibilidad al umbral. |
 | [Urgencias en Sonora](../notebooks/3.1-eda-urgencias-sonora.ipynb) | XLSX de urgencias y cruce con destinos hospitalarios si existe la tabla de accesibilidad. Serie mensual y rankings de unidades, municipios y diagnósticos. |
 | [Red vial y acceso hospitalario](../notebooks/3.2-eda-red-vial-acceso-hospitalario.ipynb) | ZIP de la RNC, CLUES y tabla de accesibilidad. Grafo regional y simulación de cierre para Yécora. |
+| [Sensibilidad de la doble barrera](../notebooks/3.3-eda-sensibilidad-doble-barrera.ipynb) | Corre con `datos_mvp/`. Compara 90, 120 y 150 minutos con cobertura y casos confirmados por municipio. |
 
 Para repetir las libretas, instala las dependencias del proyecto y las de Jupyter
 en el mismo entorno de Python.

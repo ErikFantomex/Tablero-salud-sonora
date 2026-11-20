@@ -270,12 +270,19 @@ def nota_rutas(localidades: pd.DataFrame) -> None:
             st.caption(f"Fuente de ruteo · INEGI, Sistema de Ruteo de México (SAKBÉ) v3.1. Consultas del {fechas.min()} al {fechas.max()}.")
 
 
+def abrir_busqueda_localidad() -> None:
+    st.session_state["seccion"] = "Localidades"
+    st.session_state["municipio_localidades"] = "Todo Sonora"
+    st.session_state["filtro_localidades"] = "Todas"
+
+
 def resumen(
     locales: pd.DataFrame, municipios: pd.DataFrame, anios: list[int],
     centro: int, hospital: int, fuentes: FuentesTablero,
 ) -> None:
     st.title(TITULO)
     st.markdown("Identifica dónde es más difícil llegar a servicios de salud y cómo se relaciona con las condiciones de vida.")
+    st.button("Consulta tu localidad", type="primary", on_click=abrir_busqueda_localidad)
     if locales.empty:
         sin_salud()
     else:
@@ -417,8 +424,9 @@ def explorar_localidades(locales: pd.DataFrame, centro: int, hospital: int, fuen
         sin_salud()
         return
     a, b, c = st.columns(3)
-    municipio = a.selectbox("Municipio", ["Todo Sonora", *sorted(locales["municipality_name"].dropna().unique())])
-    filtro = b.selectbox("Mostrar", ["Acceso comprometido", "Doble barrera", "Todas"])
+    municipio = a.selectbox("Municipio", ["Todo Sonora", *sorted(locales["municipality_name"].dropna().unique())],
+                            key="municipio_localidades")
+    filtro = b.selectbox("Mostrar", ["Acceso comprometido", "Doble barrera", "Todas"], key="filtro_localidades")
     nivel = c.selectbox("Tiempo en el mapa", ["Hospital", "Atención básica"])
     t = locales if municipio == "Todo Sonora" else locales[locales["municipality_name"].eq(municipio)]
     if filtro == "Acceso comprometido":
@@ -659,7 +667,7 @@ def main() -> None:
     with st.sidebar:
         st.header("Explora Sonora")
         st.caption("Salud · territorio · bienestar")
-        vista = st.radio("Secciones", VISTAS)
+        vista = st.radio("Secciones", VISTAS, key="seccion")
         centro, hospital = cfg.tiempo_critico_min, cfg.tiempo_critico_segundo_nivel_min
         if vista in ("Resumen", "Municipios", "Localidades"):
             with st.expander("Escenarios de traslado"):

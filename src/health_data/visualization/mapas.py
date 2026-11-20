@@ -273,6 +273,7 @@ def mapa_localidades(
             lat=datos["latitude"],
             lon=datos["longitude"],
             mode="markers",
+            showlegend=False,
             marker=dict(
                 size=tamano_burbuja,
                 color=datos[columna] if columna in datos.columns else COLOR_SONORA,

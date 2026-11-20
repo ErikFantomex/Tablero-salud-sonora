@@ -46,6 +46,15 @@ def test_cinco_vistas_del_mvp_sin_red_ni_credenciales(monkeypatch):
     assert any(m.label == "Personas con acceso comprometido" for m in tablero.metric)
     assert any("calculado por SAKBÉ" in m.label for m in tablero.metric)
 
+    tablero.button[0].click().run()
+    assert not tablero.exception
+    assert tablero.sidebar.radio[0].value == "Localidades"
+    assert tablero.selectbox(key="filtro_localidades").value == "Todas"
+    tablero.selectbox[3].set_value("260300001").run()
+    assert not tablero.exception
+    assert any(m.label == "Hospital" and m.value.endswith(" min") for m in tablero.metric)
+    assert any(c.value == "Calculado por SAKBÉ" for c in tablero.caption)
+
     tablero.sidebar.radio[0].set_value("Municipios").run()
     assert not tablero.exception
     assert len(tablero.dataframe[0].value) == 72
