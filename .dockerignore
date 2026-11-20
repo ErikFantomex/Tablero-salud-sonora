@@ -5,6 +5,7 @@
 
 .venv
 .tools
+.datos_mvp-*
 
 __pycache__
 *.py[cod]
@@ -17,9 +18,7 @@ __pycache__
 **/.streamlit/secrets.toml
 sakbe_cache.zip
 
-data/raw/*
-data/interim/*
-data/processed/*
+data/**
 enigh-sonora-main/data/**
 
 reports/figures/*
@@ -27,7 +26,4 @@ reports/figures/*
 *.log
 .DS_Store
 
-!data/raw/.gitkeep
-!data/interim/.gitkeep
-!data/processed/.gitkeep
 !reports/figures/.gitkeep

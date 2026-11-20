@@ -5,7 +5,8 @@ LABEL maintainer="H&Rsolucionesweb.com"
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/project/src
+    PYTHONPATH=/project/src \
+    SONORA_DATOS=mvp
 
 WORKDIR /project
 

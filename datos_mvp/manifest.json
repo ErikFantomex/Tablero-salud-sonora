@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "version": "0.1.0",
+  "generado_en": "2026-11-20T10:26:12+00:00",
+  "archivos": {
+    "salud/accesibilidad_localidades.parquet": {
+      "bytes": 460294,
+      "sha256": "be72c13995e7f0f4cc29466b8c3277147d8f0d5ccddc5202abd2effc5fab07a9",
+      "fuentes": [
+        "INEGI-POP-001",
+        "SALUD-001",
+        "INEGI-ROUTE-001",
+        "CONEVAL-ACC-001"
+      ],
+      "origen": "data/processed/accesibilidad_localidades.parquet"
+    },
+    "salud/conapo-marg-001_localidades.parquet": {
+      "bytes": 14148,
+      "sha256": "13bdfdea42707f991d89475af17530e9e77019a34e9965f647539766d6ead905",
+      "fuentes": [
+        "CONAPO-MARG-001"
+      ],
+      "origen": "data/processed/conapo-marg-001_localidades.parquet"
+    },
+    "salud/inegi-resloc-001_localidades.parquet": {
+      "bytes": 47207,
+      "sha256": "572daeeb586b64d4fd83ecd6607bb0777e3d44bffedc0f6400fd2d52f8822506",
+      "fuentes": [
+        "INEGI-RESLOC-001"
+      ],
+      "origen": "data/processed/inegi-resloc-001_localidades.parquet"
+    },
+    "salud/salud-001_establecimientos.parquet": {
+      "bytes": 19025,
+      "sha256": "fe6090e1d2d0fe788a19e94869f741765fead4fb95727806c9af1fa8934e4adf",
+      "fuentes": [
+        "SALUD-001"
+      ],
+      "origen": "data/processed/salud-001_establecimientos.parquet"
+    },
+    "salud/sakbe_resumen.json": {
+      "bytes": 355,
+      "sha256": "d6c7973dbe928eebebbc9874101a29072ea3da5bdc499907fa7c69e066c61a27",
+      "fuentes": [
+        "INEGI-ROUTE-001"
+      ],
+      "origen": "data/interim/sakbe_cache.sqlite"
+    },
+    "enigh/manifiesto.json": {
+      "bytes": 481,
+      "sha256": "6ef1b87745d9e36e790b16f990bb8f21ee02c054f7ae2f39b65a4506ab00c5ac",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/manifiesto.json"
+    },
+    "enigh/geografia/sonora_municipios.geojson": {
+      "bytes": 2999749,
+      "sha256": "7d9dd414a87001a54d9dc6afac62a1372cece323b5fe497f82f2e6376e50891b",
+      "fuentes": [
+        "INEGI-GEO-001"
+      ],
+      "origen": "enigh-sonora-main/data/processed/geografia/sonora_municipios.geojson"
+    },
+    "enigh/agregados/serie_deciles_sonora.parquet": {
+      "bytes": 10466,
+      "sha256": "c33d92509895b77fa2788446ee98517ce17f897039b2b9d4b0253060640c2d17",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/serie_deciles_sonora.parquet"
+    },
+    "enigh/agregados/serie_desigualdad.parquet": {
+      "bytes": 6205,
+      "sha256": "fa30cb2cd0a697a40a278adbf0747e20dc4b527040655de86ed7b4206565c65d",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/serie_desigualdad.parquet"
+    },
+    "enigh/agregados/ano=2020/bienestar_sonora.parquet": {
+      "bytes": 15381,
+      "sha256": "7d8883fd292d5e38818c28fb6e0d8c47ebba97c94b80d22f8f9a4e145ca31607",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2020/bienestar_sonora.parquet"
+    },
+    "enigh/agregados/ano=2020/deciles_nacionales.parquet": {
+      "bytes": 8634,
+      "sha256": "12c85658722ca828ac828899954024bee274c8d3873b88cd337b62cb4b337839",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2020/deciles_nacionales.parquet"
+    },
+    "enigh/agregados/ano=2020/deciles_sonora.parquet": {
+      "bytes": 8646,
+      "sha256": "d1548bef984fe50904825646a495ae0155d097291705feceb792ad47d83e6b5f",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2020/deciles_sonora.parquet"
+    },
+    "enigh/agregados/ano=2020/municipios_sonora.parquet": {
+      "bytes": 3651,
+      "sha256": "3aa979c6b4894c44c84eaef35c1fb225cb2b1083dc721944b1f0f9141afcb482",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2020/municipios_sonora.parquet"
+    },
+    "enigh/agregados/ano=2022/bienestar_sonora.parquet": {
+      "bytes": 15379,
+      "sha256": "74adee574785d39bbbbae3d72a6d3e363ab94162cf5e838fc9552aafa66d1beb",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2022/bienestar_sonora.parquet"
+    },
+    "enigh/agregados/ano=2022/deciles_nacionales.parquet": {
+      "bytes": 8634,
+      "sha256": "1c36df5a3074d66eae3ceddace5ce024b27a3fc198b385fa8c10e0488b69e96f",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2022/deciles_nacionales.parquet"
+    },
+    "enigh/agregados/ano=2022/deciles_sonora.parquet": {
+      "bytes": 8642,
+      "sha256": "c9207b1149bd3a307022c7e2d45b70b452279c6fa9e273584cf9df9ed3f1b1ca",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2022/deciles_sonora.parquet"
+    },
+    "enigh/agregados/ano=2022/municipios_sonora.parquet": {
+      "bytes": 3596,
+      "sha256": "59af487be8fe0a23d38bb57f72c319da81ffa2997f8af23772786444fabeb7b4",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2022/municipios_sonora.parquet"
+    },
+    "enigh/agregados/ano=2024/bienestar_sonora.parquet": {
+      "bytes": 15659,
+      "sha256": "fc297852e1b0ae0c158e4e754acde7dce6ebf19a4c4e68d3d7c6e8a8b2c514c2",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2024/bienestar_sonora.parquet"
+    },
+    "enigh/agregados/ano=2024/deciles_nacionales.parquet": {
+      "bytes": 8641,
+      "sha256": "10b5d37fac035884cead2a6ef3b048dfaa100d0d95da3232de2a3336798db38a",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2024/deciles_nacionales.parquet"
+    },
+    "enigh/agregados/ano=2024/deciles_sonora.parquet": {
+      "bytes": 8642,
+      "sha256": "200443338fa1863b579a0a70c9e26f0c83c2de070b51da4c7a28115f273db4af",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2024/deciles_sonora.parquet"
+    },
+    "enigh/agregados/ano=2024/municipios_sonora.parquet": {
+      "bytes": 3663,
+      "sha256": "60bf0a29d98709c901683bb08cd58bd081b3a962a5bff2df15b11baf1538e900",
+      "fuentes": [
+        "INEGI-ENIGH"
+      ],
+      "origen": "enigh-sonora-main/data/processed/agregados/ano=2024/municipios_sonora.parquet"
+    }
+  },
+  "fuentes": {
+    "INEGI-POP-001": {
+      "institucion": "INEGI, inegi.org.mx",
+      "producto": "Principales resultados por localidad (ITER) - Censo 2020 Sonora",
+      "url": "https://www.inegi.org.mx/contenidos/programas/ccpv/iter/zip/iter2020/iter_26csv20.zip",
+      "archivo_origen": "iter_26csv20.zip",
+      "descargado_en": "2026-10-12T13:12:44-07:00"
+    },
+    "SALUD-001": {
+      "institucion": "Secretaría de Salud, gobi.salud.gob.mx",
+      "producto": "Establecimientos de salud (CLUES)",
+      "url": "https://gobi.salud.gob.mx/gobi/catalogos/catalogosmaestros/ESTABLECIMIENTO_SALUD_202608.xlsx",
+      "archivo_origen": "ESTABLECIMIENTO_SALUD_202608.xlsx",
+      "descargado_en": "2026-10-11T09:47:40-07:00"
+    },
+    "CONEVAL-ACC-001": {
+      "institucion": "CONEVAL, coneval.org.mx",
+      "producto": "Grado de accesibilidad a carretera pavimentada 2020 (GACP)",
+      "url": "https://www.coneval.org.mx/Medicion/MP/Documents/Accesibilidad_carretera/2020/Shapefile_localidades_componentes_GACP_CONEVAL.zip",
+      "archivo_origen": "coneval_gacp2020_localidades.zip",
+      "descargado_en": "2026-10-16T09:30:03-07:00",
+      "licencia": "CC BY-NC 2.5 MX"
+    },
+    "INEGI-RESLOC-001": {
+      "institucion": "INEGI, inegi.org.mx",
+      "producto": "Características de las localidades 2020 - Sonora",
+      "url": "https://www.inegi.org.mx/contenidos/programas/ccpv/iter/zip/resloc2020/resloc_26csv2020.zip",
+      "archivo_origen": "resloc_26csv2020.zip",
+      "descargado_en": "2026-11-19T15:03:01-07:00"
+    },
+    "CONAPO-MARG-001": {
+      "institucion": "CONAPO",
+      "producto": "Índice de marginación por localidad 2020",
+      "url": "https://raw.githubusercontent.com/IndiceMx/IM_2020/main/IML_2020.xlsx",
+      "archivo_origen": "IML_2020.xlsx",
+      "descargado_en": "2026-11-19T15:03:04-07:00"
+    },
+    "INEGI-ROUTE-001": {
+      "institucion": "INEGI",
+      "producto": "SAKBÉ Sistema de Ruteo de México, API versión 3.1",
+      "url": "https://gaia.inegi.org.mx/sakbe_v3.1/",
+      "condiciones": "https://antares.inegi.org.mx/analisis/red_hidro/PDF/SAKBE_Interfaz_de_Programacion_de_Aplicaciones_para_Ruteo.pdf",
+      "consultas_desde": "2026-10-16T18:41:15",
+      "consultas_hasta": "2026-10-18T19:00:23"
+    },
+    "INEGI-GEO-001": {
+      "institucion": "INEGI",
+      "producto": "Marco Geoestadístico, municipios de Sonora",
+      "url": "https://www.inegi.org.mx/temas/mg/",
+      "url_copia": "https://raw.githubusercontent.com/MacWilliXD/INEGI-geojson/8d38f708dc4acc14afcb461f704bebb43e332a9a/geojson_descargas/AGEM_26.geojson",
+      "sha256_copia": "7d9dd414a87001a54d9dc6afac62a1372cece323b5fe497f82f2e6376e50891b"
+    },
+    "INEGI-ENIGH": {
+      "institucion": "INEGI",
+      "producto": "Encuesta Nacional de Ingresos y Gastos de los Hogares",
+      "levantamientos": {
+        "2020": "https://www.inegi.org.mx/contenidos/programas/enigh/nc/2020/datosabiertos/conjunto_de_datos_enigh_ns_2020_csv.zip",
+        "2022": "https://www.inegi.org.mx/contenidos/programas/enigh/nc/2022/datosabiertos/conjunto_de_datos_enigh_ns_2022_csv.zip",
+        "2024": "https://www.inegi.org.mx/contenidos/programas/enigh/nc/2024/datosabiertos/conjunto_de_datos_enigh2024_ns_csv.zip"
+      },
+      "transformacion": "Agregados estadísticos del proyecto ENIGH Sonora"
+    }
+  }
+}

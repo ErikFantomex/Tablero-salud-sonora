@@ -12,7 +12,7 @@ textColor = "#142D38"
 font = "sans serif"
 
 [server]
-# El tablero lee Parquet locales de data/processed; no necesita red.
+# El tablero lee los datos versionados del MVP desde disco.
 headless = true
 # No se desactiva CORS a propósito: Streamlit lo considera incompatible con la
 # protección CSRF (enableXsrfProtection) y al desactivarlo lo sobrescribe con un

@@ -1,0 +1,16 @@
+[
+  {
+    "servicio": "buscalinea",
+    "respuestas": 8831,
+    "exitosas": 7901,
+    "primera_consulta": "2026-10-16T18:41:15",
+    "ultima_consulta": "2026-10-18T18:57:31"
+  },
+  {
+    "servicio": "optima",
+    "respuestas": 28724,
+    "exitosas": 28690,
+    "primera_consulta": "2026-10-16T18:41:47",
+    "ultima_consulta": "2026-10-18T19:00:23"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "version_proyecto": "0.1.0",
+  "generado_en": "2026-11-20T03:02:56-0700",
+  "argumentos": {
+    "muestra": null,
+    "sin_bootstrap": true
+  },
+  "anios": [
+    {
+      "anio": 2020,
+      "hogares_en_muestra": 89006,
+      "hogares_sonora_muestra": 2420
+    },
+    {
+      "anio": 2022,
+      "hogares_en_muestra": 90102,
+      "hogares_sonora_muestra": 2548
+    },
+    {
+      "anio": 2024,
+      "hogares_en_muestra": 91414,
+      "hogares_sonora_muestra": 2642
+    }
+  ]
+}

@@ -14,6 +14,7 @@ APP = Path(__file__).resolve().parents[1] / "app.py"
 
 @pytest.fixture
 def fuentes(tmp_path, monkeypatch):
+    monkeypatch.setenv("SONORA_DATOS", "local")
     monkeypatch.syspath_prepend(str(APP.parent / "enigh-sonora-main"))
     from enigh import config as enigh
 

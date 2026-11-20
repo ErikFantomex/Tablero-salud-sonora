@@ -21,23 +21,41 @@ python -m pip install -e .
 python -m streamlit run app.py
 ```
 
-Abre <http://localhost:8501>. El tablero habilita cada vista según los datos
-disponibles. Para preparar los datos desde una copia limpia:
+Abre <http://localhost:8501>. El repositorio incluye en [datos_mvp/](datos_mvp/)
+los Parquet de salud e ingreso, los límites municipales y el resumen de las
+consultas SAKBÉ. Una vez instaladas las dependencias o construida la imagen de
+Docker, puedes iniciar el tablero sin descargar las fuentes, ejecutar los
+pipelines ni configurar claves de API. Los mapas usan la cartografía incluida
+y funcionan sin teselas en este modo.
 
-1. **Salud.** Ejecuta `python -m health_data.pipeline` para preparar las
-   fuentes. Con los insumos procesados y el SQLite local en
-   `data/interim/sakbe_cache.sqlite`, ejecuta
-   `python -m health_data.processing.ruteo` para reconstruir la tabla usando
-   el caché sin solicitar rutas nuevas.
-2. **ENIGH.** Entra en `enigh-sonora-main` y ejecuta `python -m enigh.pipeline`.
-   Genera los levantamientos 2020, 2022 y 2024, con perfiles de bienestar e
-   intervalos. El tablero lee los agregados en
-   `enigh-sonora-main/data/processed/agregados`. Para una instalación con Docker
-   puedes ejecutar `docker compose run --rm -w /project/enigh-sonora-main app python -m enigh.pipeline` desde la raíz.
-3. **Despliegue.** Proporciona los Parquet procesados al servidor de Streamlit.
-   Para ENIGH basta con la carpeta de agregados y el manifiesto. Los microdatos
-   de hogares y el SQLite quedan fuera de los insumos que requiere el servidor.
-   La capa municipal GeoJSON es opcional. Si falta, el mapa usa marcadores.
+El [manifiesto de datos](datos_mvp/manifest.json) registra la versión, las
+fuentes, las fechas y el SHA-256 de cada archivo. Los datos ENIGH de esta
+versión son estimaciones puntuales de 2020, 2022 y 2024, calculadas sin
+bootstrap. La tabla de accesibilidad deriva del Censo 2020, el catálogo CLUES,
+CONEVAL e INEGI, API de Ruteo SAKBÉ 3.1. Las fechas de consulta están en el
+manifiesto y en la vista de calidad.
+
+### Actualizar los datos del MVP
+
+1. Ejecuta `python -m health_data.pipeline` para preparar los insumos de salud.
+   Con estos insumos y `data/interim/sakbe_cache.sqlite`, ejecuta
+   `python -m health_data.processing.ruteo` para reconstruir las rutas desde el
+   caché.
+2. Ejecuta `python -m enigh.pipeline` desde `enigh-sonora-main`. Puedes añadir
+   `--sin-bootstrap` para generar estimaciones puntuales. Con Docker, el
+   equivalente es `docker compose run --rm -w /project/enigh-sonora-main app python -m enigh.pipeline`.
+3. Desde la raíz, genera una nueva versión y comprueba el inventario publicado.
+
+   ```powershell
+   python -m health_data.publicar_mvp --version 0.1.1
+   python -m health_data.publicar_mvp --verificar
+   ```
+
+En desarrollo, define `SONORA_DATOS=local` para usar los resultados de los
+pipelines desde sus carpetas de trabajo. Usa `SONORA_MAPA=sin_teselas` para el
+mapa local o `SONORA_MAPA=en_linea` para cargar teselas externas. Docker
+Compose toma estas opciones del entorno o de `.env`. El modo predeterminado
+de la imagen es `SONORA_DATOS=mvp`.
 
 El explorador cruza agregados por clave municipal INEGI. Muestra la cobertura
 de SAKBÉ y distingue las estimaciones ENIGH con muestra o precisión insuficiente.

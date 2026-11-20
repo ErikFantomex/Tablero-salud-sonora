@@ -31,6 +31,16 @@ ATRIBUCION_CARTO = "© OpenStreetMap contributors, © CARTO"
 
 MENSAJE_SIN_DATOS = "No hay datos suficientes para mostrar esta visualización."
 
+# Estilo MapLibre en memoria. No define fuentes remotas, fuentes tipográficas
+# ni mosaicos. Las capas y sus coordenadas se incluyen en la figura.
+ESTILO_LOCAL = {
+    "version": 8,
+    "sources": {},
+    "layers": [
+        {"id": "fondo", "type": "background", "paint": {"background-color": "#f2f5f7"}}
+    ],
+}
+
 
 def estilo_mapa_base() -> dict:
     """Estilo de ``layout.mapbox`` con el mapa base de CARTO si hay llave, o de OpenStreetMap si no."""
@@ -80,6 +90,7 @@ def mapa_municipios(
     titulo: str = "Tiempo promedio de traslado a salud por municipio",
     unidad: str = "minutos",
     minimo_localidades: int = 1,
+    sin_teselas: bool = False,
 ) -> go.Figure:
     """Genera un mapa coroplético de los 72 municipios de Sonora.
 
@@ -108,33 +119,35 @@ def mapa_municipios(
         columna_nombre if columna_nombre in sub.columns else "clave_cvegeo"
     )
 
-    figura = go.Figure(
-        go.Choropleth(
-            geojson=geojson,
-            locations=sub["clave_cvegeo"],
-            featureidkey="properties.cvegeo",
-            z=sub[columna],
-            colorscale=SECUENCIA_MAPA,
-            marker_line_color="white",
-            marker_line_width=0.8,
-            colorbar=dict(title=unidad),
-            hovertemplate=(
-                "<b>%{customdata[0]}</b><br>"
-                + f"{titulo}: "
-                + "%{z:,.1f} "
-                + unidad
-                + "<extra></extra>"
-            ),
-            customdata=sub[[col_nombre_real]].to_numpy(),
-        )
-    )
+    tipo_traza = go.Choroplethmap if sin_teselas else go.Choropleth
+    figura = go.Figure(tipo_traza(
+        geojson=geojson,
+        locations=sub["clave_cvegeo"],
+        featureidkey="properties.cvegeo",
+        z=sub[columna],
+        colorscale=SECUENCIA_MAPA,
+        marker_line_color="white",
+        marker_line_width=0.8,
+        colorbar=dict(title=unidad),
+        hovertemplate=(
+            "<b>%{customdata[0]}</b><br>"
+            + f"{titulo}: "
+            + "%{z:,.1f} "
+            + unidad
+            + "<extra></extra>"
+        ),
+        customdata=sub[[col_nombre_real]].to_numpy(),
+    ))
 
-    figura.update_geos(
-        fitbounds="locations",
-        visible=False,
-        bgcolor="rgba(0,0,0,0)",
-        showcountries=False,
-    )
+    if sin_teselas:
+        figura.update_layout(map=dict(style=ESTILO_LOCAL, center=dict(lat=29.4, lon=-111.74), zoom=4.8))
+    else:
+        figura.update_geos(
+            fitbounds="locations",
+            visible=False,
+            bgcolor="rgba(0,0,0,0)",
+            showcountries=False,
+        )
     figura.update_layout(
         template=PLANTILLA,
         title=titulo,
@@ -154,11 +167,14 @@ def mapa_localidades(
     unidad: str = "minutos",
     max_puntos: int = 5000,
     columna_metodo: str | None = None,
+    geojson: dict | None = None,
+    sin_teselas: bool = False,
 ) -> go.Figure:
-    """Mapa de puntos (Scattermapbox) para localidades individuales.
+    """Mapa de puntos para localidades individuales.
 
     Muestra cada localidad con color gradual según tiempo de traslado hacia la clínica más cercana.
     Con ``columna_metodo`` (``sakbe``/``estimado``) el tooltip indica si el tiempo fue medido o estimado.
+    Con ``sin_teselas`` el fondo usa únicamente los límites del GeoJSON local.
     """
     if (
         localidades is None
@@ -172,6 +188,8 @@ def mapa_localidades(
     datos = localidades.dropna(subset=["latitude", "longitude"]).copy()
     if columna in datos.columns:
         datos = datos[datos[columna].notna()].copy()
+    if datos.empty:
+        return _figura_vacia("Sin puntos con el indicador seleccionado.")
 
     if len(datos) > max_puntos:
         # Muestreo estratificado o recorte si excede el límite para rendimiento web
@@ -210,8 +228,9 @@ def mapa_localidades(
             plantilla_hover += " (%{customdata[3]})"
     plantilla_hover += "<extra></extra>"
 
+    tipo_traza = go.Scattermap if sin_teselas else go.Scattermapbox
     figura = go.Figure(
-        go.Scattermapbox(
+        tipo_traza(
             lat=datos["latitude"],
             lon=datos["longitude"],
             mode="markers",
@@ -228,19 +247,38 @@ def mapa_localidades(
         )
     )
 
-    # Centro geográfico aproximado de Sonora
-    lat_centro = float(datos["latitude"].median())
-    lon_centro = float(datos["longitude"].median())
+    if sin_teselas:
+        sur, norte = datos["latitude"].min(), datos["latitude"].max()
+        oeste, este = datos["longitude"].min(), datos["longitude"].max()
+        lat_centro = float((sur + norte) / 2)
+        lon_centro = float((oeste + este) / 2)
+        amplitud = max(este - oeste, (norte - sur) / np.cos(np.radians(lat_centro)), 0.01)
+        zoom = float(np.clip(np.log2(240 / amplitud), 4.5, 11.5))
+        capas = []
+        if geojson:
+            capas.append(dict(
+                sourcetype="geojson",
+                source=geojson,
+                type="line",
+                color="#b0bbc4",
+                line=dict(width=1),
+                below="traces",
+            ))
+        figura.update_layout(map=dict(
+            style=ESTILO_LOCAL, zoom=zoom, center=dict(lat=lat_centro, lon=lon_centro), layers=capas,
+        ))
+    else:
+        # Conserva el encuadre y la cartografía de los consumidores existentes.
+        figura.update_layout(mapbox=dict(
+            **estilo_mapa_base(),
+            zoom=5.8,
+            center=dict(lat=float(datos["latitude"].median()), lon=float(datos["longitude"].median())),
+        ))
 
     figura.update_layout(
         template=PLANTILLA,
         title=titulo,
         height=620,
-        mapbox=dict(
-            **estilo_mapa_base(),
-            zoom=5.8,
-            center=dict(lat=lat_centro, lon=lon_centro),
-        ),
         margin=dict(t=60, b=10, l=10, r=10),
     )
     return figura

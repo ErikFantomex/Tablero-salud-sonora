@@ -37,6 +37,29 @@ enigh-sonora-main/data/**
 !enigh-sonora-main/data/.gitkeep
 *.parquet
 
+# Solo los insumos públicos que lee el tablero integrado
+/.datos_mvp-*
+/datos_mvp/**
+!/datos_mvp/manifest.json
+!/datos_mvp/salud/
+!/datos_mvp/salud/accesibilidad_localidades.parquet
+!/datos_mvp/salud/conapo-marg-001_localidades.parquet
+!/datos_mvp/salud/inegi-resloc-001_localidades.parquet
+!/datos_mvp/salud/salud-001_establecimientos.parquet
+!/datos_mvp/salud/sakbe_resumen.json
+!/datos_mvp/enigh/
+!/datos_mvp/enigh/manifiesto.json
+!/datos_mvp/enigh/agregados/
+!/datos_mvp/enigh/agregados/serie_deciles_sonora.parquet
+!/datos_mvp/enigh/agregados/serie_desigualdad.parquet
+!/datos_mvp/enigh/agregados/ano=20[0-9][0-9]/
+!/datos_mvp/enigh/agregados/ano=20[0-9][0-9]/bienestar_sonora.parquet
+!/datos_mvp/enigh/agregados/ano=20[0-9][0-9]/deciles_nacionales.parquet
+!/datos_mvp/enigh/agregados/ano=20[0-9][0-9]/deciles_sonora.parquet
+!/datos_mvp/enigh/agregados/ano=20[0-9][0-9]/municipios_sonora.parquet
+!/datos_mvp/enigh/geografia/
+!/datos_mvp/enigh/geografia/sonora_municipios.geojson
+
 # Caché SAKBÉ empaquetado localmente
 /sakbe_cache.zip
 
