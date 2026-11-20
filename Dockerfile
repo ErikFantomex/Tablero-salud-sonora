@@ -15,9 +15,10 @@ RUN python -m pip install -r requirements.txt \
     && useradd --create-home data-user
 
 COPY --chown=data-user:data-user . .
-RUN python -m health_data.publicar_mvp --verificar
+RUN chown data-user:data-user /project
 
 USER data-user
+RUN python -m health_data.publicar_mvp --verificar
 
 EXPOSE 8501
 

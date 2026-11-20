@@ -222,7 +222,7 @@ Con el ruteo completo (18 de octubre de 2026). Una localidad tiene **acceso comp
 
 Dónde verlo:
 
-- **Tablero:** `make app` (o `docker compose up app`) y abrir http://localhost:8501.
+- **Tablero:** `make app` o `docker compose up --build --wait app`. Abre <http://127.0.0.1:8501>.
 - **Análisis completo:** `notebooks/2.0-dd-analisis-accesibilidad.ipynb`.
 - **Figuras para presentaciones:** `reports/figures/*.png`, que genera el notebook al ejecutarse. Los `.html`
   interactivos no se versionan, porque el mapa puede llevar la llave de CARTO.
