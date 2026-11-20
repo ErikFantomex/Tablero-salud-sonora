@@ -53,7 +53,7 @@ def test_mapa_localidades() -> None:
 
 
 def test_mapa_localidades_con_metodo() -> None:
-    """El tooltip indica si el tiempo fue medido con SAKBÉ o estimado."""
+    """El tooltip distingue entre el cálculo de SAKBÉ y una estimación por distancia."""
     df = pd.DataFrame(
         {
             "locality_name": ["A", "B"],
@@ -66,7 +66,9 @@ def test_mapa_localidades_con_metodo() -> None:
         }
     )
     fig = mapa_localidades(df, columna_metodo="primary_method")
-    assert list(fig.data[0].customdata[:, 3]) == ["medido con SAKBÉ", "estimado"]
+    assert list(fig.data[0].customdata[:, 3]) == [
+        "Calculado por SAKBÉ", "Estimado a partir de la distancia en línea recta",
+    ]
     assert "customdata[3]" in fig.data[0].hovertemplate
 
 

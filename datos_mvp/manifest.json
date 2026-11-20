@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "version": "0.1.0",
-  "generado_en": "2026-11-20T10:26:12+00:00",
+  "version": "0.1.1",
+  "generado_en": "2026-11-20T11:14:09+00:00",
   "archivos": {
     "salud/accesibilidad_localidades.parquet": {
-      "bytes": 460294,
-      "sha256": "be72c13995e7f0f4cc29466b8c3277147d8f0d5ccddc5202abd2effc5fab07a9",
+      "bytes": 474091,
+      "sha256": "c6179a7f68205a93dc2d2cd2f564f3e75a9d44fc95eaf48637c5f742f520da35",
       "fuentes": [
         "INEGI-POP-001",
         "SALUD-001",

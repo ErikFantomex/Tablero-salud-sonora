@@ -201,14 +201,14 @@ docker compose down
 ## Resultados
 
 Con el ruteo completo (18 de octubre de 2026). Una localidad tiene **acceso comprometido** si está a más de
-60 min de un centro de salud o a más de 120 min de un hospital; los umbrales están en
+60 min de la atención básica más cercana (unidad de primer nivel u hospital) o a más de 120 min de un hospital. Los umbrales están en
 `config/fuentes_health.yaml`.
 
 - **21,560 personas (0.73 % del estado) en 882 localidades tienen acceso comprometido**, en 53 de los 72
   municipios.
-- **La brecha está en el hospital.** El 99.46 % de la población vive a 30 min o menos de un centro de salud,
+- **La brecha está en el hospital.** El 99.46 % de la población vive a 30 min o menos de la atención básica más cercana,
   pero 20,520 personas viven a más de 2 horas de un hospital y 9,822 a más de 3. El 85 % de las personas con
-  acceso comprometido tiene un centro de salud cerca y el hospital lejos.
+  acceso comprometido tiene la atención básica cerca y el hospital lejos.
 - **Se concentra en la sierra y en el desierto.** Yécora (4,793), Pitiquito (3,371), Sáric (2,042), Álamos
   (1,211) y Suaqui Grande (1,114) reúnen el 58 %. En Yécora, Suaqui Grande, Onavas y San Javier afecta a toda la
   población del municipio.

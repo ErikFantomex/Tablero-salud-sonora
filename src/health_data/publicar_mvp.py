@@ -27,7 +27,8 @@ SALUD = {
     "accesibilidad_localidades.parquet": (
         (
             "locality_id", "locality_name", "municipality_name", "population",
-            "latitude", "longitude", "nearest_primary_clues", "primary_time_min", "primary_method",
+            "latitude", "longitude", "nearest_primary_clues", "primary_time_min", "primary_facility_time_min",
+            "primary_method",
             "nearest_secondary_clues", "secondary_time_min", "secondary_method",
             "routing_status", "routing_consulted_at", "disponibilidad", "pct_viviendas_sin_auto_ni_moto",
             "poblacion_60_y_mas", "pct_60_y_mas", "poblacion_con_discapacidad", "pct_con_discapacidad",

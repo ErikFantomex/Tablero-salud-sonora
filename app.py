@@ -63,7 +63,7 @@ UNIDAD = "Pesos corrientes por persona al trimestre"
 CAMPOS_MUNICIPIO = {
     "municipio": "Municipio",
     "cvegeo": "Clave INEGI",
-    "umbral_centro": "Umbral centro de salud (min)",
+    "umbral_centro": "Umbral atención básica (min)",
     "umbral_hospital": "Umbral hospital (min)",
     "population": "Población",
     "poblacion_evaluada": "Población evaluada",
@@ -73,6 +73,7 @@ CAMPOS_MUNICIPIO = {
     "pct_sakbe": "% población con ruta hospitalaria SAKBÉ",
     "doble_barrera": "Personas con doble barrera",
     "poblacion_doble_evaluable": "Población evaluada para doble barrera",
+    "pct_doble_evaluable": "% evaluado para doble barrera",
     "pct_marginacion_alta": "% en localidades de marginación alta o muy alta",
     "poblacion_con_marginacion": "Población con dato CONAPO",
     "anio_enigh": "Año ENIGH",
@@ -87,11 +88,15 @@ CAMPOS_MUNICIPIO = {
 CAMPOS_LOCALIDAD = {
     "locality_id": "Clave INEGI", "locality_name": "Localidad",
     "municipality_name": "Municipio", "population": "Población",
-    "primary_time_min": "Minutos al centro de salud",
+    "primary_time_min": "Minutos a la atención básica más cercana",
+    "basic_destination": "Tipo de destino para atención básica",
+    "basic_clues": "CLUES de referencia para atención básica",
+    "basic_method": "Método · atención básica",
+    "primary_facility_time_min": "Minutos a la unidad de primer nivel",
     "secondary_time_min": "Minutos al hospital",
-    "primary_method": "Origen · centro de salud",
+    "primary_method": "Método · unidad de primer nivel",
     "secondary_method": "Origen · hospital",
-    "nearest_primary_clues": "CLUES · centro de salud",
+    "nearest_primary_clues": "CLUES · unidad de primer nivel",
     "nearest_secondary_clues": "CLUES · hospital",
     "grado_marginacion": "Marginación CONAPO",
     "transporte_foraneo": "Transporte foráneo",
@@ -281,9 +286,10 @@ def resumen(
         c1, c2, c3 = st.columns(3)
         c1.metric("Personas con acceso comprometido", f"{acceso:,}", f"{100 * acceso / evaluada:.2f} % de la población evaluada" if evaluada else None, delta_color="off")
         c2.metric("Localidades con acceso comprometido", f"{locales['comprometida'].sum():,}")
-        c3.metric("Población con ruta al hospital medida", f"{100 * cobertura / poblacion:.2f} %" if poblacion else "Sin dato")
+        c3.metric("Población con tiempo al hospital calculado por SAKBÉ",
+                  f"{100 * cobertura / poblacion:.2f} %" if poblacion else "Sin dato")
         st.info("**Cómo leer estas cifras:** ‘acceso comprometido’ significa que el traslado supera alguno de los tiempos elegidos. Solo se calcula el porcentaje con personas para las que hay información suficiente.")
-        st.caption(f"Umbrales de traslado · más de {centro} min al centro de salud o más de {hospital} min al hospital. Población evaluada: {evaluada:,} de {poblacion:,}.")
+        st.caption(f"Umbrales de traslado · más de {centro} min a atención básica o más de {hospital} min al hospital. Población evaluada: {evaluada:,} de {poblacion:,}.")
         nota_rutas(locales)
         m = municipios.nlargest(10, "acceso_comprometido").query("acceso_comprometido > 0")
         if not m.empty:
@@ -315,7 +321,7 @@ def explorar_municipios(
     centro: int, hospital: int, fuentes: FuentesTablero,
 ) -> None:
     st.title("Explorador municipal")
-    st.caption("Selecciona un indicador para colorear el mapa. Un color más intenso representa un valor mayor; consulta la tabla para el dato exacto.")
+    st.caption("Selecciona un indicador y usa la escala del mapa para interpretar los colores. La tabla muestra los valores exactos.")
     if municipios.empty:
         sin_salud()
         return
@@ -335,18 +341,40 @@ def explorar_municipios(
     indicadores = {
         "pct_comprometido": "%", "acceso_comprometido": "personas",
         "minutos_hospital": "min", "pct_sakbe": "%", "doble_barrera": "personas",
-        "pct_marginacion_alta": "%", "ing_pc": "MXN/trimestre",
+        "pct_marginacion_alta": "%", "ing_pc": "MXN/persona/trimestre",
     }
-    opciones = [c for c in indicadores if c in m and m[c].notna().any()]
+    opciones = [c for c in indicadores if c in m and (c in {"doble_barrera", "ing_pc"} or m[c].notna().any())]
     if opciones:
         campo = st.selectbox("Indicador del mapa", opciones, format_func=CAMPOS_MUNICIPIO.get)
+        detalle = None
+        if campo == "doble_barrera":
+            m = m.assign(detalle_doble=m.apply(
+                lambda f: f"Cobertura: {f['poblacion_doble_evaluable']:,} de {f['population']:,} personas "
+                          f"({f['pct_doble_evaluable']:.1f} %)" if f["population"]
+                          else "Sin población registrada",
+                axis=1,
+            ))
+            detalle = "detalle_doble"
+            evaluadas, total = m["poblacion_doble_evaluable"].sum(), m["population"].sum()
+            if total:
+                st.info(f"Se pudo evaluar al {evaluadas / total:.1%} de la población de Sonora "
+                        f"({evaluadas:,} de {total:,} personas). Los conteos incluyen los casos confirmados. "
+                        "Consulta la cobertura de cada municipio antes de comparar.")
+        elif campo == "ing_pc":
+            detalle = "estado_enigh"
         geo = cartografia_municipal(fuentes)
         con_datos = m.dropna(subset=[campo])
         if geo:
-            figura = mapas.mapa_municipios(con_datos, geo, columna=campo, columna_nombre="municipio",
+            figura = mapas.mapa_municipios(m, geo, columna=campo, columna_nombre="municipio",
                                           titulo=CAMPOS_MUNICIPIO[campo], unidad=indicadores[campo],
-                                          sin_teselas=fuentes.sin_teselas)
+                                          sin_teselas=fuentes.sin_teselas, columna_detalle=detalle,
+                                          mostrar_sin_dato=True)
             st.plotly_chart(figura, use_container_width=True)
+            if campo == "ing_pc":
+                st.caption(f"{len(con_datos)} de {len(m)} municipios tienen una estimación publicable. "
+                           "El gris indica que el importe no está disponible. Consulta el motivo en el mapa o la tabla.")
+            elif m[campo].isna().any():
+                st.caption("El gris indica que no hay datos suficientes para este indicador.")
         elif {"latitude", "longitude"}.issubset(locales):
             puntos = locales.dropna(subset=["latitude", "longitude"]).sort_values("population", ascending=False)
             puntos = puntos.drop_duplicates("cvegeo")[["cvegeo", "latitude", "longitude"]].merge(con_datos, on="cvegeo")
@@ -357,6 +385,15 @@ def explorar_municipios(
                 )
                 st.plotly_chart(figura, use_container_width=True)
                 st.caption("Cada marcador se ubica en la localidad con más habitantes del municipio.")
+        if campo == "doble_barrera":
+            por_clave = m.sort_values("municipio").set_index("cvegeo")
+            clave = st.selectbox("Consultar casos y cobertura de un municipio", por_clave.index, index=None,
+                                 format_func=por_clave["municipio"].get)
+            if clave is not None:
+                fila = por_clave.loc[clave]
+                casos = fila["doble_barrera"]
+                resultado = f"{casos:,.0f} personas con doble barrera confirmada" if pd.notna(casos) else "Sin población evaluable"
+                st.write(f"**{fila['municipio']}** · {resultado}. {fila[detalle]}.")
         m = m.sort_values(campo, ascending=False)
     st.caption("Doble barrera · traslado al hospital por encima del umbral y localidad que reporta ausencia de transporte foráneo (RESLOC 2020). Marginación alta · porcentaje entre habitantes con dato CONAPO 2020.")
     if "ing_pc" in m and m["ing_pc"].notna().any():
@@ -375,14 +412,14 @@ def explorar_municipios(
 
 def explorar_localidades(locales: pd.DataFrame, centro: int, hospital: int, fuentes: FuentesTablero) -> None:
     st.title("Localidades y acceso a la salud")
-    st.caption("Filtra por municipio y tipo de barrera. Selecciona una localidad en la ficha para ver su centro de salud y hospital asociados.")
+    st.caption("Filtra por municipio y tipo de barrera. Busca una localidad para ver sus tiempos y destinos de atención.")
     if locales.empty:
         sin_salud()
         return
     a, b, c = st.columns(3)
     municipio = a.selectbox("Municipio", ["Todo Sonora", *sorted(locales["municipality_name"].dropna().unique())])
     filtro = b.selectbox("Mostrar", ["Acceso comprometido", "Doble barrera", "Todas"])
-    nivel = c.selectbox("Tiempo en el mapa", ["Hospital", "Centro de salud"])
+    nivel = c.selectbox("Tiempo en el mapa", ["Hospital", "Atención básica"])
     t = locales if municipio == "Todo Sonora" else locales[locales["municipality_name"].eq(municipio)]
     if filtro == "Acceso comprometido":
         t = t[t["comprometida"]]
@@ -394,34 +431,29 @@ def explorar_localidades(locales: pd.DataFrame, centro: int, hospital: int, fuen
     a, b = st.columns(2)
     a.metric("Localidades en la selección", f"{len(t):,}")
     b.metric("Población en la selección", f"{int(t['population'].sum()):,}")
-    campo = "secondary_time_min" if nivel == "Hospital" else "primary_time_min"
+    ordenadas = t.sort_values("population", ascending=False)
+    fichas = ordenadas.set_index("locality_id")
+    nombres = fichas["locality_name"] + " · " + fichas["municipality_name"] + " (" + fichas.index + ")"
+    clave = st.selectbox("Buscar por localidad o clave", fichas.index, index=None, format_func=nombres.get)
+    if clave is not None:
+        ficha_localidad(fichas.loc[clave], fuentes)
+    campo, metodo = ("secondary_time_min", "secondary_method") if nivel == "Hospital" else ("primary_time_min", "basic_method")
     if {"latitude", "longitude"}.issubset(t):
         figura = mapas.mapa_localidades(
-            t, columna=campo, titulo=f"Traslado · {nivel.lower()}",
+            t, columna=campo, columna_metodo=metodo, titulo=f"Traslado · {nivel.lower()}",
             geojson=cartografia_municipal(fuentes) if fuentes.sin_teselas else None,
-            sin_teselas=fuentes.sin_teselas,
+            sin_teselas=fuentes.sin_teselas, localidad_destacada=clave,
         )
         st.plotly_chart(figura, use_container_width=True)
-    ordenadas = t.sort_values("population", ascending=False)
+        visibles = len(figura.data[0].lat) if figura.data else 0
+        if visibles < len(t):
+            st.caption(f"El mapa muestra {visibles:,} de {len(t):,} localidades de la selección. "
+                       "La tabla incluye todas. Para ver más detalle, filtra por municipio o busca una localidad.")
+        if clave is not None and len(figura.data) > 1:
+            st.caption("El punto azul destaca la localidad seleccionada. Tócalo o pasa el cursor para consultar su tiempo.")
+        elif clave is not None:
+            st.caption("La localidad seleccionada no tiene coordenadas o tiempo para este mapa. Consulta su ficha.")
     tabla_publica(ordenadas, CAMPOS_LOCALIDAD, "localidades_sonora.csv")
-    with st.expander("Ficha de una localidad"):
-        fichas = ordenadas.set_index("locality_id")
-        nombres = fichas.apply(lambda f: f"{f['locality_name']} · {f['municipality_name']} ({f.name})", axis=1)
-        clave = st.selectbox("Buscar por localidad o clave", fichas.index, format_func=nombres.get)
-        fila = fichas.loc[clave]
-        establecimientos = leer(fuentes.salud / "salud-001_establecimientos.parquet")
-        unidades = {}
-        if {"clues", "nombre_unidad"}.issubset(establecimientos):
-            unidades = establecimientos.drop_duplicates("clues").set_index("clues")["nombre_unidad"].to_dict()
-        for col, prefijo, titulo in zip(st.columns(2), ("primary", "secondary"), ("Centro de salud", "Hospital")):
-            tiempo = fila[f"{prefijo}_time_min"]
-            clues = fila.get(f"nearest_{prefijo}_clues")
-            metodo = fila.get(f"{prefijo}_method")
-            col.metric(titulo, f"{tiempo:.0f} min" if pd.notna(tiempo) else "Sin tiempo")
-            if pd.notna(clues):
-                col.write(unidades.get(clues, clues))
-            if pd.notna(metodo):
-                col.caption(f"Método · {metodo}")
     if filtro == "Todas" and "poblacion_sin_afiliacion" in t:
         grupos = analisis.grupos_vulnerables(t, umbral_primer=centro, umbral_segundo=hospital)
         if not grupos.empty:
@@ -431,14 +463,44 @@ def explorar_localidades(locales: pd.DataFrame, centro: int, hospital: int, fuen
     nota_rutas(t)
 
 
+def ficha_localidad(fila: pd.Series, fuentes: FuentesTablero) -> None:
+    st.subheader(fila["locality_name"])
+    establecimientos = leer(fuentes.salud / "salud-001_establecimientos.parquet")
+    unidades = {}
+    if {"clues", "nombre_unidad"}.issubset(establecimientos):
+        unidades = establecimientos.drop_duplicates("clues").set_index("clues")["nombre_unidad"].to_dict()
+    basica, hospital = st.columns(2)
+    for col, titulo, tiempo, clues, metodo in (
+        (basica, "Atención básica más cercana", fila["primary_time_min"], fila["basic_clues"], fila["basic_method"]),
+        (hospital, "Hospital", fila["secondary_time_min"], fila.get("nearest_secondary_clues"), fila.get("secondary_method")),
+    ):
+        col.metric(titulo, f"{tiempo:.0f} min" if pd.notna(tiempo) else "Sin tiempo")
+        if pd.isna(tiempo):
+            continue
+        if pd.notna(clues):
+            nombre = unidades.get(clues, clues)
+            referencia = pd.notna(metodo) and metodo != "sakbe"
+            col.write(f"Unidad de referencia · {nombre}" if referencia else nombre)
+        if pd.notna(metodo):
+            col.caption(mapas.METODOS_TRASLADO.get(metodo, metodo))
+        else:
+            col.caption("Método no identificado en esta versión de los datos.")
+    destino = fila["basic_destination"]
+    if isinstance(destino, str) and destino == "Hospital":
+        basica.caption("Se usó el tiempo al hospital por ser el menor de los dos.")
+    elif pd.isna(fila["basic_destination"]) and pd.notna(fila["primary_time_min"]):
+        basica.caption("Esta versión de los datos no identifica el destino asociado al mínimo.")
+
+
 def ingreso_bienestar(anios: list[int], fuentes: FuentesTablero) -> None:
     st.title("Ingreso y bienestar")
     st.caption("Los deciles dividen a la población en diez grupos según ingreso: el 1 reúne a quienes tienen menos y el 10 a quienes tienen más.")
     if not anios:
         sin_enigh()
         return
-    anio = st.selectbox("Levantamiento", anios, index=len(anios) - 1)
     vista = st.radio("Análisis", ["Distribución", "Evolución", "Bienestar"], horizontal=True, key="analisis_enigh")
+    if vista != "Evolución":
+        anio = st.selectbox("Año de la encuesta", anios, index=len(anios) - 1)
     if vista == "Distribución":
         partes = []
         for ambito, nombre in (("Sonora", "deciles_sonora"), ("México", "deciles_nacionales")):
@@ -534,16 +596,17 @@ def metodologia(locales: pd.DataFrame, anios: list[int], fuentes: FuentesTablero
             f"fecha de generación {fuentes.metadatos['generado_en'][:10]}."
         )
     st.markdown("""
-**Acceso.** Los tiempos describen el traslado en automóvil al establecimiento operativo seleccionado.
-Entre los candidatos cercanos se conserva la ruta de menor tiempo. La cobertura distingue rutas SAKBÉ
-de estimaciones, y la población con información incompleta queda visible en los denominadores.
+**Acceso.** Para atención básica se usa el menor tiempo entre una unidad de primer nivel y un hospital.
+SAKBÉ calcula el tiempo de un trayecto en automóvil sobre la red vial. Para localidades sin esa ruta,
+el respaldo CONEVAL asigna un tiempo típico de localidades comparables. Si ese respaldo tampoco está disponible,
+el tiempo se estima a partir de la distancia en línea recta.
 
 **Contexto territorial.** ITER, RESLOC y CONAPO corresponden a 2020. Los resultados describen
 localidades o agregados municipales. La marginación de una localidad caracteriza su contexto territorial.
 
 **Ingreso.** ENIGH estima ingresos y bienestar para hogares, con factores de expansión.
-Las comparaciones municipales son exploratorias. Las celdas por debajo del mínimo de hogares y las
-que presentan baja precisión reportada se omiten del mapa, la tabla y la descarga.
+Las comparaciones municipales son exploratorias. Cuando la muestra es insuficiente o se reporta baja
+precisión, el importe queda vacío en la tabla y la descarga. El mapa muestra esos municipios en gris.
 Las series en pesos constantes usan el INPC de INEGI.
 """)
     if not locales.empty:
@@ -551,7 +614,8 @@ Las series en pesos constantes usan el INPC de INEGI.
         conteos = []
         for nivel, campo in (("Centro de salud", "primary_method"), ("Hospital", "secondary_method")):
             if campo in locales:
-                por_metodo = locales.groupby(locales[campo].fillna("Sin dato"))["population"].agg(["size", "sum"])
+                etiquetas = locales[campo].map(mapas.METODOS_TRASLADO).fillna("Método no identificado")
+                por_metodo = locales.groupby(etiquetas)["population"].agg(["size", "sum"])
                 conteos.append(por_metodo.reset_index().set_axis(["Método", "Localidades", "Población"], axis=1).assign(Nivel=nivel))
         if conteos:
             st.subheader("Cobertura por método de traslado")
@@ -599,7 +663,7 @@ def main() -> None:
         centro, hospital = cfg.tiempo_critico_min, cfg.tiempo_critico_segundo_nivel_min
         if vista in ("Resumen", "Municipios", "Localidades"):
             with st.expander("Escenarios de traslado"):
-                centro = st.slider("Centro de salud (min)", 15, 240, centro, 5)
+                centro = st.slider("Atención básica (min)", 15, 240, centro, 5)
                 hospital = st.slider("Hospital (min)", 15, 360, hospital, 5)
                 st.caption("Ajusta el tiempo que consideras un traslado largo. Los indicadores se recalculan al instante.")
         st.caption("Datos preparados para consulta; no necesitas descargar fuentes.")

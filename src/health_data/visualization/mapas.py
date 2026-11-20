@@ -30,6 +30,11 @@ URL_MOSAICOS_CARTO = "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
 ATRIBUCION_CARTO = "© OpenStreetMap contributors, © CARTO"
 
 MENSAJE_SIN_DATOS = "No hay datos suficientes para mostrar esta visualización."
+METODOS_TRASLADO = {
+    "sakbe": "Calculado por SAKBÉ",
+    "coneval": "Imputado con apoyo de CONEVAL",
+    "estimado": "Estimado a partir de la distancia en línea recta",
+}
 
 # Estilo MapLibre en memoria. No define fuentes remotas, fuentes tipográficas
 # ni mosaicos. Las capas y sus coordenadas se incluyen en la figura.
@@ -91,6 +96,8 @@ def mapa_municipios(
     unidad: str = "minutos",
     minimo_localidades: int = 1,
     sin_teselas: bool = False,
+    columna_detalle: str | None = None,
+    mostrar_sin_dato: bool = False,
 ) -> go.Figure:
     """Genera un mapa coroplético de los 72 municipios de Sonora.
 
@@ -105,11 +112,11 @@ def mapa_municipios(
         )
 
     datos_mapa = poner_clave_cvegeo(datos)
-    claves_geo = {
-        str((f.get("properties", {}) or {}).get("cvegeo", "")).strip()
+    figuras_por_clave = {
+        str((f.get("properties", {}) or {}).get("cvegeo", "")).strip(): f
         for f in geojson.get("features", [])
     }
-    empata = datos_mapa["clave_cvegeo"].isin(claves_geo)
+    empata = datos_mapa["clave_cvegeo"].isin(figuras_por_clave)
 
     if not empata.any():
         return _figura_vacia("Las claves de municipio no empataron con el GeoJSON.")
@@ -120,24 +127,49 @@ def mapa_municipios(
     )
 
     tipo_traza = go.Choroplethmap if sin_teselas else go.Choropleth
-    figura = go.Figure(tipo_traza(
-        geojson=geojson,
-        locations=sub["clave_cvegeo"],
-        featureidkey="properties.cvegeo",
-        z=sub[columna],
-        colorscale=SECUENCIA_MAPA,
-        marker_line_color="white",
-        marker_line_width=0.8,
-        colorbar=dict(title=unidad),
-        hovertemplate=(
-            "<b>%{customdata[0]}</b><br>"
-            + f"{titulo}: "
-            + "%{z:,.1f} "
-            + unidad
-            + "<extra></extra>"
-        ),
-        customdata=sub[[col_nombre_real]].to_numpy(),
-    ))
+    figura = go.Figure()
+    geo_con_valor = geojson
+    if mostrar_sin_dato:
+        sin_valor = sub[sub[columna].isna()]
+        sub = sub[sub[columna].notna()]
+        if not sin_valor.empty:
+            geo_sin_valor = dict(geojson, features=[figuras_por_clave[c] for c in sin_valor["clave_cvegeo"]])
+            geo_con_valor = dict(geojson, features=[figuras_por_clave[c] for c in sub["clave_cvegeo"]])
+            figura.add_trace(tipo_traza(
+                geojson=geo_sin_valor,
+                locations=sin_valor["clave_cvegeo"],
+                featureidkey="properties.cvegeo",
+                z=[0] * len(sin_valor),
+                colorscale=[[0, "#aab6bd"], [1, "#aab6bd"]],
+                showscale=False,
+                marker_line_color="white",
+                marker_line_width=0.8,
+                customdata=sin_valor[[col_nombre_real]].to_numpy(),
+                hovertext=sin_valor[columna_detalle] if columna_detalle else None,
+                hovertemplate="<b>%{customdata[0]}</b><br>Sin dato"
+                + ("<br>%{hovertext}" if columna_detalle else "") + "<extra></extra>",
+            ))
+    if not sub.empty:
+        figura.add_trace(tipo_traza(
+            geojson=geo_con_valor,
+            locations=sub["clave_cvegeo"],
+            featureidkey="properties.cvegeo",
+            z=sub[columna],
+            colorscale=SECUENCIA_MAPA,
+            marker_line_color="white",
+            marker_line_width=0.8,
+            colorbar=dict(title=unidad),
+            hovertemplate=(
+                "<b>%{customdata[0]}</b><br>"
+                + f"{titulo}: "
+                + "%{z:,.1f} "
+                + unidad
+                + ("<br>%{hovertext}" if columna_detalle else "")
+                + "<extra></extra>"
+            ),
+            hovertext=sub[columna_detalle] if columna_detalle else None,
+            customdata=sub[[col_nombre_real]].to_numpy(),
+        ))
 
     if sin_teselas:
         figura.update_layout(map=dict(style=ESTILO_LOCAL, center=dict(lat=29.4, lon=-111.74), zoom=4.8))
@@ -169,11 +201,12 @@ def mapa_localidades(
     columna_metodo: str | None = None,
     geojson: dict | None = None,
     sin_teselas: bool = False,
+    localidad_destacada: str | None = None,
 ) -> go.Figure:
     """Mapa de puntos para localidades individuales.
 
     Muestra cada localidad con color gradual según tiempo de traslado hacia la clínica más cercana.
-    Con ``columna_metodo`` (``sakbe``/``estimado``) el tooltip indica si el tiempo fue medido o estimado.
+    Con ``columna_metodo`` el tooltip indica cómo se obtuvo el tiempo.
     Con ``sin_teselas`` el fondo usa únicamente los límites del GeoJSON local.
     """
     if (
@@ -191,9 +224,15 @@ def mapa_localidades(
     if datos.empty:
         return _figura_vacia("Sin puntos con el indicador seleccionado.")
 
-    if len(datos) > max_puntos:
-        # Muestreo estratificado o recorte si excede el límite para rendimiento web
-        datos = datos.sample(max_puntos, random_state=42)
+    destacada = datos.iloc[:0]
+    if localidad_destacada is not None and "locality_id" in datos:
+        seleccion = datos["locality_id"].eq(localidad_destacada)
+        destacada = datos[seleccion]
+        datos = datos[~seleccion]
+    cupo_muestra = max(max_puntos - len(destacada), 0)
+    if len(datos) > cupo_muestra:
+        datos = datos.sample(cupo_muestra, random_state=42)
+    datos = pd.concat([datos, destacada]) if not destacada.empty else datos
 
     col_nom = (
         columna_nombre if columna_nombre in datos.columns else "locality_id"
@@ -221,8 +260,8 @@ def mapa_localidades(
         if columna_metodo and columna_metodo in datos.columns:
             datos["_origen"] = (
                 datos[columna_metodo]
-                .map({"sakbe": "medido con SAKBÉ", "coneval": "asignado con CONEVAL", "estimado": "estimado"})
-                .fillna("estimado")
+                .map(METODOS_TRASLADO)
+                .fillna("Método no identificado")
             )
             columnas_hover.append("_origen")
             plantilla_hover += " (%{customdata[3]})"
@@ -246,6 +285,17 @@ def mapa_localidades(
             hovertemplate=plantilla_hover,
         )
     )
+    if not destacada.empty:
+        figura.add_trace(tipo_traza(
+            lat=destacada["latitude"],
+            lon=destacada["longitude"],
+            mode="markers",
+            marker=dict(size=18, color=COLOR_NACIONAL),
+            name="Localidad seleccionada",
+            showlegend=False,
+            customdata=datos.iloc[-len(destacada):][columnas_hover].to_numpy(),
+            hovertemplate=plantilla_hover,
+        ))
 
     if sin_teselas:
         sur, norte = datos["latitude"].min(), datos["latitude"].max()

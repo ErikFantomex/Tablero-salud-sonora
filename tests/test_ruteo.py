@@ -265,6 +265,9 @@ def test_imputar_respeta_que_el_1er_nivel_no_supere_al_2do() -> None:
     r = imputar_con_coneval(base, minimo=1)
     #Mediana del 1er nivel = 90, pero el hospital medido está a 40: queda en 40
     assert r.iloc[1].primary_time_min == 40.0
+    assert r.iloc[1].primary_facility_time_min == 90.0
+    assert r.iloc[1].primary_method == "coneval"
+    assert r.iloc[1].secondary_method == "sakbe"
 
 
 def test_excluir_localidades() -> None:

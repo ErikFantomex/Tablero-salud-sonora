@@ -39,8 +39,34 @@ def preparar_localidades(
     t = analisis.preparar_tabla(salud)
     if not t["population"].between(0, float("inf"), inclusive="left").all():
         raise ValueError("La población debe ser finita y no negativa.")
-    for campo in ("primary_time_min", "secondary_time_min"):
-        t[campo] = t[campo].where(t[campo].between(0, float("inf"), inclusive="left"))
+    for campo in ("primary_time_min", "secondary_time_min", "primary_facility_time_min"):
+        if campo in t:
+            tiempo = pd.to_numeric(t[campo], errors="coerce")
+            t[campo] = tiempo.where(tiempo.between(0, float("inf"), inclusive="left"))
+    hospital = t["secondary_time_min"]
+    basica = t["primary_time_min"]
+    if "primary_facility_time_min" in t:
+        centro = t["primary_facility_time_min"]
+        usar_hospital = basica.notna() & hospital.lt(centro)
+        usar_centro = basica.notna() & centro.le(hospital)
+    else:
+        # En las tablas anteriores solo se guardaba el mínimo. Un empate no
+        # permite identificar qué destino aportó el tiempo.
+        usar_centro = basica.notna() & (hospital.isna() | basica.lt(hospital))
+        usar_hospital = pd.Series(False, index=t.index)
+    for nombre, campo_centro, campo_hospital in (
+        ("basic_clues", "nearest_primary_clues", "nearest_secondary_clues"),
+        ("basic_method", "primary_method", "secondary_method"),
+    ):
+        valores = pd.Series(pd.NA, index=t.index, dtype="string")
+        if campo_centro in t:
+            valores.loc[usar_centro] = t.loc[usar_centro, campo_centro].astype("string")
+        if campo_hospital in t:
+            valores.loc[usar_hospital] = t.loc[usar_hospital, campo_hospital].astype("string")
+        t[nombre] = valores
+    t["basic_destination"] = pd.Series(pd.NA, index=t.index, dtype="string")
+    t.loc[usar_centro, "basic_destination"] = "Unidad de primer nivel"
+    t.loc[usar_hospital, "basic_destination"] = "Hospital"
     t["locality_id"] = t["locality_id"].astype("string")
     if not t["locality_id"].str.fullmatch(r"26\d{7}", na=False).all() or t["locality_id"].duplicated().any():
         raise ValueError("La tabla de salud debe contener claves únicas de localidades de Sonora.")
@@ -92,6 +118,7 @@ def resumir_municipios(t: pd.DataFrame) -> pd.DataFrame:
     m["municipio"] = grupos["municipality_name"].first()
     for nombre, numerador, denominador in (
         ("pct_comprometido", "acceso_comprometido", "poblacion_evaluada"),
+        ("pct_doble_evaluable", "poblacion_doble_evaluable", "population"),
         ("pct_sakbe", "poblacion_sakbe", "population"),
         ("pct_marginacion_alta", "marginacion_alta", "poblacion_con_marginacion"),
     ):

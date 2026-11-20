@@ -372,6 +372,13 @@ def excluir_localidades(pop: pd.DataFrame, excluidas: dict[str, str]) -> pd.Data
     return pop.loc[~mascara].reset_index(drop=True)
 
 
+def agregar_tiempo_atencion_basica(tabla: pd.DataFrame) -> pd.DataFrame:
+    """Conserva el tiempo al primer nivel antes de calcular el acceso a atención básica."""
+    tabla["primary_facility_time_min"] = tabla["primary_time_min"]
+    tabla["primary_time_min"] = np.minimum(tabla["primary_facility_time_min"], tabla["secondary_time_min"])
+    return tabla
+
+
 def imputar_con_coneval(tabla: pd.DataFrame, minimo: int = MINIMO_GRUPO_CONEVAL) -> pd.DataFrame:
     """Respaldo para los niveles sin ruta SAKBÉ (localidades ``sin_ruta``, ``parcial`` o ``estimado``).
 
@@ -387,7 +394,7 @@ def imputar_con_coneval(tabla: pd.DataFrame, minimo: int = MINIMO_GRUPO_CONEVAL)
     salud), contra ~82 % y ~80 % de la estimación recalibrada y ~72 % de la anterior.
     """
     if "tiempo_centro_servicios" not in tabla.columns:
-        return tabla
+        return agregar_tiempo_atencion_basica(tabla.copy())
     t = tabla.copy()
     categoria = t["tiempo_centro_servicios"].astype(object)
     candidatas = t["routing_status"].isin([ESTADO_SIN_RUTA, "parcial", "estimado"]) & categoria.notna()
@@ -420,9 +427,7 @@ def imputar_con_coneval(tabla: pd.DataFrame, minimo: int = MINIMO_GRUPO_CONEVAL)
             t.at[i, col_d] = round(float(distancia), 2)
             t.at[i, col_m] = "coneval"
 
-    #Igual que en el ruteo: el 1er nivel no puede ser más lento que el hospital, que también da atención básica
-    t["primary_time_min"] = np.minimum(t["primary_time_min"], t["secondary_time_min"])
-    return t
+    return agregar_tiempo_atencion_basica(t)
 
 
 def estado_ruteo(r1: list[ResultadoRuta], r2: list[ResultadoRuta]) -> np.ndarray:
@@ -525,11 +530,6 @@ def consolidar_dataset_final(
             for a, b in zip(rutas["primer"], rutas["segundo"])
         )
 
-    #En caso de que el 2do nivel resulte numéricamente menor que el 1er nivel
-    #(p. ej. si un hospital general está en la misma manzana y el centro de salud unos metros más allá),
-    #el 1er nivel toma el tiempo menor ya que el hospital también brinda atención médica básica
-    t1_ajustado = np.minimum(time_1, time_2)
-
     df_final = pd.DataFrame(
         {
             "locality_id": pop["cvegeo"],
@@ -540,7 +540,7 @@ def consolidar_dataset_final(
             "longitude": pop["longitud"],
             "nearest_primary_clues": clues_1,
             "primary_distance_km": dist_1,
-            "primary_time_min": t1_ajustado,
+            "primary_time_min": time_1,
             "primary_method": metodo_1,
             "nearest_secondary_clues": clues_2,
             "secondary_distance_km": dist_2,
@@ -574,6 +574,8 @@ def consolidar_dataset_final(
         df_final = df_final.drop(columns=["cvegeo"], errors="ignore")
         # Respaldo para las localidades sin ruta SAKBÉ (sin carretera cercana)
         df_final = imputar_con_coneval(df_final)
+    else:
+        df_final = agregar_tiempo_atencion_basica(df_final)
 
     #Nombres anteriores, conservados por compatibilidad
     if "pct_viviendas_sin_auto_ni_moto" in df_final.columns:
@@ -660,10 +662,10 @@ def main(argv: list[str] | None = None) -> int:
                 f"Quedan {pendientes:,} localidades por completar; vuelva a ejecutar "
                 f"`make rutas` (al agotarse la cuota, al día siguiente)."
             )
-    print(f"Tiempo promedio al 1er nivel: {df['primary_time_min'].mean():.1f} min")
+    print(f"Tiempo promedio a atención básica: {df['primary_time_min'].mean():.1f} min")
     print(f"Tiempo promedio al 2do nivel: {df['secondary_time_min'].mean():.1f} min")
     print(
-        f"Localidades a > 60 min de 1er nivel: {(df['primary_time_min'] > 60).sum()}"
+        f"Localidades a > 60 min de atención básica: {(df['primary_time_min'] > 60).sum()}"
     )
     print(
         f"Localidades a > 120 min de 2do nivel: {(df['secondary_time_min'] > 120).sum()}"
