@@ -80,6 +80,9 @@ def test_cinco_vistas_del_mvp_sin_red_ni_credenciales(monkeypatch):
     assert not tablero.exception
     assert tablero.metric[2].value == tablero.metric[3].value == f"{fila['secondary_time_min']:.0f} min"
     assert any("Se usó el tiempo al hospital" in texto.value for texto in tablero.caption)
+    publicada = tablero.dataframe[0].value.set_index("Clave INEGI").loc[fila["locality_id"]]
+    assert publicada["CLUES de referencia para atención básica"] == fila["nearest_secondary_clues"]
+    assert publicada["Método · atención básica"] == fila["secondary_method"]
     base, seleccionada = _comprobar_mapa_local(tablero, "scattermap")["data"]
     assert len(base["lat"]) == 5000
     assert seleccionada["name"] == "Localidad seleccionada"
