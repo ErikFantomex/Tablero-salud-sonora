@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "version": "0.1.1",
-  "generado_en": "2026-11-20T11:14:09+00:00",
+  "version": "0.1.2",
+  "generado_en": "2026-11-20T20:57:27+00:00",
   "archivos": {
     "salud/accesibilidad_localidades.parquet": {
       "bytes": 474091,
@@ -45,6 +45,36 @@
         "INEGI-ROUTE-001"
       ],
       "origen": "data/interim/sakbe_cache.sqlite"
+    },
+    "vial/brigada_yecora.json": {
+      "bytes": 240491,
+      "sha256": "92602731d17565beb40a2605412ee312d98c58fbae64a52cce7f64c18108bb77",
+      "fuentes": [
+        "INEGI-RNC-001",
+        "INEGI-POP-001",
+        "SALUD-001"
+      ],
+      "origen": "data/processed/brigada_yecora.json"
+    },
+    "vial/escenario_vial_localidades.parquet": {
+      "bytes": 9771,
+      "sha256": "5b31ac2b2fd6815286f3b3931f032687987b1f63e85f5b672c0ab1805d8d70e2",
+      "fuentes": [
+        "INEGI-RNC-001",
+        "INEGI-POP-001",
+        "SALUD-001"
+      ],
+      "origen": "data/processed/escenario_vial_localidades.parquet"
+    },
+    "vial/escenario_vial_trayectos.geojson": {
+      "bytes": 812720,
+      "sha256": "a1ec476a60da6976530d3479fa764f6ff4c62b9999c3abbdd82a95b4a1379793",
+      "fuentes": [
+        "INEGI-RNC-001",
+        "INEGI-POP-001",
+        "SALUD-001"
+      ],
+      "origen": "data/processed/escenario_vial_trayectos.geojson"
     },
     "enigh/manifiesto.json": {
       "bytes": 481,
@@ -211,6 +241,13 @@
       "url": "https://raw.githubusercontent.com/IndiceMx/IM_2020/main/IML_2020.xlsx",
       "archivo_origen": "IML_2020.xlsx",
       "descargado_en": "2026-11-19T15:03:04-07:00"
+    },
+    "INEGI-RNC-001": {
+      "institucion": "INEGI, SICT e IMT",
+      "producto": "Red Nacional de Caminos 2025",
+      "url": "https://rnc.imt.mx/recursos/ShapeFiles/Red_Nacional_de_Caminos_2025.zip",
+      "archivo_origen": "Red_Nacional_de_Caminos_2025.zip",
+      "descargado_en": "2026-11-19T15:04:00-07:00"
     },
     "INEGI-ROUTE-001": {
       "institucion": "INEGI",

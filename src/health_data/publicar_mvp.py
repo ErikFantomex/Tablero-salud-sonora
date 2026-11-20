@@ -42,6 +42,7 @@ SALUD = {
 }
 AGREGADOS_ENIGH = ("bienestar_sonora", "deciles_nacionales", "deciles_sonora", "municipios_sonora")
 SERIES_ENIGH = ("serie_deciles_sonora", "serie_desigualdad")
+ARCHIVOS_VIALES = ("brigada_yecora.json", "escenario_vial_localidades.parquet", "escenario_vial_trayectos.geojson")
 ESTIMACION_MUNICIPAL = ("ing_pc", "ing_pc_ic_inferior", "ing_pc_ic_superior", "ing_pc_cv")
 REPORTE_COMPARACION = RAIZ / "data" / "calidad" / "comparacion_mvp.md"
 
@@ -64,6 +65,7 @@ def inventario() -> dict[str, tuple[str, ...]]:
     return {
         **{f"salud/{nombre}": fuentes for nombre, (_, fuentes) in SALUD.items()},
         "salud/sakbe_resumen.json": ("INEGI-ROUTE-001",),
+        **{f"vial/{nombre}": ("INEGI-RNC-001", "INEGI-POP-001", "SALUD-001") for nombre in ARCHIVOS_VIALES},
         "enigh/manifiesto.json": ("INEGI-ENIGH",),
         "enigh/geografia/sonora_municipios.geojson": ("INEGI-GEO-001",),
         **{f"enigh/agregados/{nombre}.parquet": ("INEGI-ENIGH",) for nombre in SERIES_ENIGH},
@@ -99,7 +101,7 @@ def fuentes_publicas(enigh_cfg, geo, auditoria: pd.DataFrame) -> dict:
             if fila["status"] == "ok"
         }
     fuentes = {}
-    for clave in ("INEGI-POP-001", "SALUD-001", "CONEVAL-ACC-001", "INEGI-RESLOC-001", "CONAPO-MARG-001"):
+    for clave in ("INEGI-POP-001", "SALUD-001", "CONEVAL-ACC-001", "INEGI-RESLOC-001", "CONAPO-MARG-001", "INEGI-RNC-001"):
         fuente = salud_cfg.fuente(clave)
         descarga = descargas.get((clave, fuente.nombre_archivo), {})
         fuentes[clave] = {
@@ -173,6 +175,9 @@ def preparar_copia(directorio: Path, version: str) -> None:
             origen = config.PROCESSED_DATA_DIR / ruta.name
             columnas, _ = SALUD[ruta.name]
             pd.read_parquet(origen, columns=list(columnas)).to_parquet(ruta, index=False)
+        elif relativa.startswith("vial/"):
+            origen = config.PROCESSED_DATA_DIR / ruta.name
+            shutil.copyfile(origen, ruta)
         else:
             origen = enigh.DIR_PROCESSED / relativa.removeprefix("enigh/")
             if ruta.name == "manifiesto.json":

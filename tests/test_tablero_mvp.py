@@ -25,7 +25,7 @@ def _comprobar_mapa_local(tablero, tipo):
     return mapas[0]
 
 
-def test_cinco_vistas_del_mvp_sin_red_ni_credenciales(monkeypatch):
+def test_vistas_del_mvp_sin_red_ni_credenciales(monkeypatch):
     monkeypatch.delenv("SONORA_DATOS", raising=False)
     monkeypatch.delenv("SONORA_MAPA", raising=False)
     for nombre in ("SAKBE_TOKEN", "SAKBE_TOKENS", "CARTO_API_KEY"):
@@ -125,6 +125,14 @@ def test_cinco_vistas_del_mvp_sin_red_ni_credenciales(monkeypatch):
         assert not tablero.exception
         assert tablero.get("plotly_chart")
         assert any(s.label == "Año de la encuesta" for s in tablero.selectbox) == (vista == "Bienestar")
+
+    tablero.sidebar.radio[0].set_value("Red vial y brigadas").run()
+    assert not tablero.exception
+    assert any(m.label == "Localidades con aumento" and m.value == "65" for m in tablero.metric)
+    assert any(m.label == "Orden optimizado" and m.value.endswith(" min") for m in tablero.metric)
+    ahorro = next(m.value for m in tablero.metric if m.label == "Ahorro de conducción")
+    assert float(ahorro.removesuffix(" min")) > 0
+    assert len(tablero.get("plotly_chart")) == 2
 
     tablero.sidebar.radio[0].set_value("Calidad y metodología").run()
     assert not tablero.exception

@@ -157,12 +157,16 @@ def vista_urgencias() -> None:
     st.dataframe(unidades, hide_index=True, use_container_width=True)
 
 
-def vista_red_vial() -> None:
-    st.title("Red vial y acceso hospitalario")
-    datos = _tabla("escenario_vial_localidades.parquet")
-    ruta = config.PROCESSED_DATA_DIR / "escenario_vial_trayectos.geojson"
-    if datos.empty or not ruta.is_file():
+def vista_red_vial(directorio: Path = config.PROCESSED_DATA_DIR, ejemplo: str | None = None) -> None:
+    st.subheader("Cierre simulado y acceso hospitalario")
+    tabla = directorio / "escenario_vial_localidades.parquet"
+    ruta = directorio / "escenario_vial_trayectos.geojson"
+    if not tabla.is_file() or not ruta.is_file():
         st.info("Ejecute la libreta 3.2 de red vial para generar las rutas del escenario.")
+        return
+    datos = _leer_tabla(tabla, tabla.stat().st_mtime_ns)
+    if datos.empty:
+        st.info("El escenario no contiene localidades con ruta base.")
         return
     municipio = datos["municipio"].iloc[0]
     tramo = datos["tramo_cerrado"].iloc[0]
@@ -174,7 +178,12 @@ def vista_red_vial() -> None:
     segunda.metric("Localidades sin ruta", f"{(~datos['con_ruta']).sum():,}")
     maximo = datos["aumento_min"].max()
     tercera.metric("Mayor aumento", f"{maximo:.2f} min" if pd.notna(maximo) else "Sin dato")
-    st.caption("Los tiempos comparan rutas modeladas entre nodos del recorte regional.")
+    st.caption(f"{datos.loc[demora, 'population'].sum():,} personas en localidades con aumento "
+               f"y {datos.loc[~datos['con_ruta'], 'population'].sum():,} en localidades sin ruta.")
+    st.caption("Los tiempos comparan rutas modeladas entre nodos del recorte regional. "
+               "Sin ruta significa sin conexión dentro del recorte.")
+    if ejemplo:
+        st.caption(f"El mapa muestra el trayecto de ejemplo desde {ejemplo}. La tabla reúne todas las localidades afectadas.")
 
     geometrias = json.loads(ruta.read_text(encoding="utf-8"))["features"]
     figura = go.Figure()

@@ -22,14 +22,16 @@ from enigh import config as enigh  # noqa: E402
 from health_data import analisis, config, territorio  # noqa: E402
 from health_data.processing import cartografia  # noqa: E402
 from health_data.visualization import mapas  # noqa: E402
+from health_data.visualization.piloto_vial import vista_piloto_vial  # noqa: E402
 
 TITULO = "Sonora: salud, ingreso y territorio"
-VISTAS = ["Resumen", "Municipios", "Localidades", "Ingreso y bienestar", "Calidad y metodología"]
+VISTAS = ["Resumen", "Municipios", "Localidades", "Ingreso y bienestar", "Red vial y brigadas", "Calidad y metodología"]
 DESCRIPCIONES = {
     "Resumen": "Una lectura rápida de las principales barreras para llegar a servicios de salud y del ingreso en Sonora.",
     "Municipios": "Compara los 72 municipios. Elige una medida para ver dónde se concentra cada situación.",
     "Localidades": "Busca comunidades, filtra los resultados y consulta sus tiempos de traslado estimados.",
     "Ingreso y bienestar": "Explora cómo se distribuye el ingreso y cómo han cambiado las condiciones de vida.",
+    "Red vial y brigadas": "Explora qué cambia cuando se cierra una carretera y cómo ordenar las visitas de una brigada.",
     "Calidad y metodología": "Conoce las fuentes, la cobertura y las precauciones para interpretar los resultados.",
 }
 ESTILOS = """
@@ -756,6 +758,9 @@ def main() -> None:
     st.markdown('<div class="eyebrow">Tablero público de Sonora</div>', unsafe_allow_html=True)
     if vista != "Localidades":
         st.markdown(f'<div class="intro">{DESCRIPCIONES[vista]}</div>', unsafe_allow_html=True)
+    if vista == "Red vial y brigadas":
+        vista_piloto_vial(fuentes.mvp / "vial" if fuentes.mvp else config.PROCESSED_DATA_DIR)
+        return
     anios = anios_enigh(fuentes)
     if vista == "Ingreso y bienestar":
         ingreso_bienestar(anios, fuentes)

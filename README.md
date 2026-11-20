@@ -3,7 +3,13 @@
 El tablero integrado cruza los tiempos de traslado a servicios de salud con el
 contexto de marginación, transporte e ingreso en Sonora. El punto de entrada es
 `app.py` en la raíz. La navegación incluye un resumen estatal, un explorador
-municipal, localidades, ingreso y bienestar, y calidad de las fuentes.
+municipal, localidades, ingreso y bienestar, red vial y brigadas, y calidad de las fuentes.
+
+**Red vial y brigadas** incluye un cierre simulado de carretera y un recorrido
+de ida y vuelta para hasta ocho localidades del piloto de Yécora. El tablero
+compara el orden elegido con el óptimo para esas paradas usando tiempos
+dirigidos de la Red Nacional de Caminos 2025. Son escenarios de análisis,
+con tiempos de conducción estimados dentro del recorte regional.
 
 ## Abrir el tablero integrado
 
@@ -63,20 +69,23 @@ manifiesto y en la vista de calidad.
 2. Ejecuta `python -m enigh.pipeline` desde `enigh-sonora-main`. Puedes añadir
    `--sin-bootstrap` para generar estimaciones puntuales. Con Docker, el
    equivalente es `docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm -w /project/enigh-sonora-main app python -m enigh.pipeline`.
-3. Desde la raíz, genera y revisa el reporte de comparación sin sustituir la
+3. Para actualizar el piloto vial, ejecuta la
+   [libreta de red vial](notebooks/3.2-eda-red-vial-acceso-hospitalario.ipynb).
+   Sus últimas celdas generan los tres archivos viales incorporados al MVP.
+4. Desde la raíz, genera y revisa el reporte de comparación sin sustituir la
    versión vigente. El reporte queda en `data/calidad/comparacion_mvp.md`.
    Resume archivos y fuentes, cambios de localidades, claves que no cruzan y
    cobertura por método. Los datos inválidos, como claves duplicadas, columnas
    obligatorias ausentes y tiempos negativos, bloquean la publicación.
 
    ```powershell
-   python -m health_data.publicar_mvp --version 0.1.2 --solo-reporte
+   python -m health_data.publicar_mvp --version 0.1.3 --solo-reporte
    ```
 
-4. Revisa las alertas y publica el candidato cuando esté listo.
+5. Revisa las alertas y publica el candidato cuando esté listo.
 
    ```powershell
-   python -m health_data.publicar_mvp --version 0.1.2
+   python -m health_data.publicar_mvp --version 0.1.3
    python -m health_data.publicar_mvp --verificar
    ```
 

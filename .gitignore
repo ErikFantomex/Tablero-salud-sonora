@@ -41,6 +41,10 @@ enigh-sonora-main/data/**
 /.datos_mvp-*
 /datos_mvp/**
 !/datos_mvp/manifest.json
+!/datos_mvp/vial/
+!/datos_mvp/vial/brigada_yecora.json
+!/datos_mvp/vial/escenario_vial_localidades.parquet
+!/datos_mvp/vial/escenario_vial_trayectos.geojson
 !/datos_mvp/salud/
 !/datos_mvp/salud/accesibilidad_localidades.parquet
 !/datos_mvp/salud/conapo-marg-001_localidades.parquet
