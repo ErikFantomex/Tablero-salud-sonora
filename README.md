@@ -10,7 +10,7 @@ municipal, localidades, ingreso y bienestar, y calidad de las fuentes.
 Con Docker, desde la raíz:
 
 ```powershell
-docker compose up --build app
+docker compose up --build --wait app
 ```
 
 Sin Docker, con Python 3.12 desde la raíz:
@@ -43,7 +43,7 @@ manifiesto y en la vista de calidad.
    caché.
 2. Ejecuta `python -m enigh.pipeline` desde `enigh-sonora-main`. Puedes añadir
    `--sin-bootstrap` para generar estimaciones puntuales. Con Docker, el
-   equivalente es `docker compose run --rm -w /project/enigh-sonora-main app python -m enigh.pipeline`.
+   equivalente es `docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm -w /project/enigh-sonora-main app python -m enigh.pipeline`.
 3. Desde la raíz, genera una nueva versión y comprueba el inventario publicado.
 
    ```powershell
@@ -54,8 +54,10 @@ manifiesto y en la vista de calidad.
 En desarrollo, define `SONORA_DATOS=local` para usar los resultados de los
 pipelines desde sus carpetas de trabajo. Usa `SONORA_MAPA=sin_teselas` para el
 mapa local o `SONORA_MAPA=en_linea` para cargar teselas externas. Docker
-Compose toma estas opciones del entorno o de `.env`. El modo predeterminado
-de la imagen es `SONORA_DATOS=mvp`.
+Compose toma `SONORA_MAPA` del entorno o de `.env`. La imagen usa
+`SONORA_DATOS=mvp`; para abrir el tablero con resultados de trabajo y archivos
+del equipo, añade `-f docker-compose.yml -f docker-compose.datos.yml` antes de
+`up`.
 
 El explorador cruza agregados por clave municipal INEGI. Muestra la cobertura
 de SAKBÉ y distingue las estimaciones ENIGH con muestra o precisión insuficiente.
@@ -133,6 +135,7 @@ Data-Health-MCD-Unison/
 ├── app.py                   # Tablero Streamlit
 ├── Dockerfile
 ├── docker-compose.yml
+├── docker-compose.datos.yml  # Montaje opcional para actualizar datos
 ├── requirements.txt
 └── README.md
 ```
@@ -151,16 +154,25 @@ No se utiliza Django ni PostgreSQL.
 
 ## Uso con Docker
 
-### Construir la imagen
+### Arrancar y comprobar el tablero
 
 ```powershell
-docker compose build
+docker compose up --build --wait app
+docker compose ps
 ```
 
-### Ejecutar el pipeline
+Abre <http://127.0.0.1:8501>. Si el puerto ya está en uso, define
+`SONORA_PUERTO=8502` en `.env` y abre el puerto elegido. La imagen verifica
+los archivos de `datos_mvp/` al construirse. Compose espera a que Streamlit
+responda antes de terminar el comando de arranque.
+
+### Actualizar datos de trabajo
+
+La configuración adicional monta el directorio del proyecto para guardar
+los resultados de los pipelines en el equipo.
 
 ```powershell
-docker compose run --rm app python -m health_data.pipeline
+docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.pipeline
 ```
 
 ### Descargar una sola fuente
@@ -177,18 +189,7 @@ descargar; si su huella no coincide con la registrada, se detiene.
 
 ```powershell
 docker compose run --rm app python -m pytest tests -v
-```
-
-### Levantar el tablero
-
-```powershell
-docker compose up app
-```
-
-Abrir:
-
-```text
-http://localhost:8501
+docker compose run --rm -w /project/enigh-sonora-main app python -m pytest tests -v
 ```
 
 ### Detener el proyecto
@@ -258,8 +259,8 @@ INEGI ([solicitarlo aquí](https://gaia.inegi.org.mx/sakbe_v3.1/genera_token.jsp
 
 ```bash
 cp .env.example .env   #colocar SAKBE_TOKENS=<token1>,<token2>
-docker compose run --rm app python -m health_data.ingestion.sakbe           #estado de cuota y caché
-docker compose run --rm app python -m health_data.ingestion.sakbe --probar  #ruta de prueba
+docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.ingestion.sakbe           # estado de cuota y caché
+docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.ingestion.sakbe --probar  # ruta de prueba
 ```
 
 - Las respuestas se guardan en `data/interim/sakbe_cache.sqlite`; una consulta

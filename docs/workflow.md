@@ -15,10 +15,10 @@ Con la imagen de Docker construida, estos comandos descargan los archivos origin
 y preparan los dos insumos por localidad sin ejecutar el ruteo.
 
 ```powershell
-docker compose run --rm app python -m health_data.ingestion.descarga INEGI-RESLOC-001
-docker compose run --rm app python -m health_data.ingestion.descarga CONAPO-MARG-001
-docker compose run --rm app python -m health_data.processing.inegi_resloc_001
-docker compose run --rm app python -m health_data.processing.conapo_marg_001
+docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.ingestion.descarga INEGI-RESLOC-001
+docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.ingestion.descarga CONAPO-MARG-001
+docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.processing.inegi_resloc_001
+docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.processing.conapo_marg_001
 ```
 
 | Fuente | Insumo preparado |
@@ -36,8 +36,8 @@ El pipeline general también genera las dos tablas cuando dispone de los crudos.
 Las otras dos descargas se ejecutan por separado.
 
 ```powershell
-docker compose run --rm app python -m health_data.ingestion.descarga SONORA-URG-001
-docker compose run --rm app python -m health_data.ingestion.descarga INEGI-RNC-001
+docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.ingestion.descarga SONORA-URG-001
+docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.ingestion.descarga INEGI-RNC-001
 ```
 
 `SONORA-URG-001` corresponde al archivo 2018–2022, con licencia de uso no comercial en la
