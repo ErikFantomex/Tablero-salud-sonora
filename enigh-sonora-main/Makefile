@@ -1,13 +1,12 @@
 # Tablero ENIGH · Ingreso de las familias en Sonora
 #
-# El intérprete de Python vive dentro del proyecto (.tools/) porque el entorno no
-# permite escribir en /opt/homebrew ni en ~/.local. `make venv` lo detecta y crea
-# el entorno virtual con él.
+# Este Makefile conserva los comandos del pipeline ENIGH. La aplicación única
+# se ejecuta desde la raíz del repositorio.
 #
 # Uso rápido:
 #   make install     # crea el venv e instala dependencias
 #   make data        # descarga y procesa la ENIGH (2020, 2022, 2024)
-#   make app         # levanta el tablero
+#   make app         # levanta el tablero integrado desde la raíz
 
 PYTHON ?= $(shell ls .tools/python3.12/Versions/3.12/bin/python3.12 2>/dev/null || which python3.12 || which python3)
 VENV   := .venv
@@ -48,17 +47,17 @@ data-fast: install
 geo: install
 	$(PY) -m enigh.pipeline --solo-geografia
 
-app: install
-	$(VENV)/bin/streamlit run app.py
+app:
+	cd .. && $(MAKE) app
 
 test: install
 	$(PY) -m pytest tests/ -v
 
 lint: install
-	$(PY) -m ruff check enigh/ tests/ app.py
+	$(PY) -m ruff check enigh/ tests/
 
 fmt: install
-	$(PY) -m ruff check --fix enigh/ tests/ app.py
+	$(PY) -m ruff check --fix enigh/ tests/
 
 validate: install
 	$(PY) -m enigh.validacion

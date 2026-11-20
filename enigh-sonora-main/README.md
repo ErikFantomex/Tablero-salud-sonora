@@ -2,8 +2,8 @@
 
 En este repositorio, abre el [tablero integrado Sonora](../README.md) desde la
 raíz. El pipeline de esta carpeta genera los agregados de ingreso y bienestar
-que consume esa aplicación. A continuación se conserva la documentación del
-proyecto original.
+que consume esa aplicación. Las descripciones de las vistas más abajo documentan
+el diseño original; el único tablero ejecutable está en `../app.py`.
 
 <p align="center">
   <img src="assets/logo_mcd.png" alt="Maestría en Ciencia de Datos, Universidad de Sonora" width="120">
@@ -15,9 +15,8 @@ proyecto original.
   Desarrollado por Julio Waissman (julio.waissman@unison.mx) con DeepSeek Harness y Streamlit.
 </p>
 
-Aplicación de análisis de datos que descarga la **Encuesta Nacional de Ingresos y
-Gastos de los Hogares (ENIGH)** del INEGI, la procesa y sirve un tablero
-interactivo en Streamlit sobre cómo está el ingreso de los hogares en **Sonora**,
+Pipeline de análisis de datos que descarga la **Encuesta Nacional de Ingresos y
+Gastos de los Hogares (ENIGH)** del INEGI y procesa el ingreso de los hogares en **Sonora**,
 por decil, con comparación nacional, mapas, serie de tiempo 2020-2022-2024 e
 indicadores de bienestar más allá del ingreso.
 
@@ -28,17 +27,15 @@ indicadores de bienestar más allá del ingreso.
 ```bash
 make install     # crea el entorno virtual e instala dependencias
 make data        # descarga la ENIGH y procesa los tres años (~5 min, 287 MB)
-make app         # levanta el tablero en http://localhost:8501
+make app         # levanta el tablero integrado de la raíz
 ```
 
 Si tienes prisa, `make data-fast` omite el cálculo de intervalos de confianza
 (bootstrap) y tarda una fracción del tiempo; el tablero funciona igual, solo que
 las gráficas no muestran bigotes de incertidumbre.
 
-> **`make data` es obligatorio antes de `make app`.** El repositorio **no incluye
-> datos**: son ~911 MB y se regeneran desde las fuentes públicas del INEGI con el
-> pipeline incluido. Si abres el tablero sin haber corrido el pipeline, no falla:
-> te muestra en pantalla los comandos exactos que faltan.
+El tablero integrado ya incluye agregados ENIGH procesados en `../datos_mvp/`.
+Ejecuta `make data` solo cuando quieras regenerarlos desde las fuentes públicas.
 
 Sin `make`:
 
@@ -46,7 +43,8 @@ Sin `make`:
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python -m enigh.pipeline
-.venv/bin/streamlit run app.py
+cd ..
+python -m streamlit run app.py
 ```
 
 ---
@@ -163,12 +161,12 @@ enigh/              paquete de análisis (sin dependencia de Streamlit)
   graficos.py       figuras Plotly reutilizables
   validacion.py     comprobaciones contra cifras de control
   pipeline.py       orquestador con CLI
-app.py              tablero Streamlit
+../app.py           único tablero Streamlit del repositorio
 assets/             emblema de la Maestría en Ciencia de Datos
 config/             fuentes.yaml, deflactores.csv, validacion.csv
 data/               NO versionado: se genera con `make data` (solo .gitkeep)
 docs/               evidencia de la verificación del INPC (boletines y serie)
-tests/              208 pruebas (unidad, integración, identidad y humo del tablero)
+tests/              pruebas del pipeline y de sus resultados
 ```
 
 El catálogo de indicadores de bienestar se declara en `enigh/bienestar.py` (una
