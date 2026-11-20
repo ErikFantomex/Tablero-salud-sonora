@@ -70,3 +70,8 @@ enigh-sonora-main/data/**
 # Mapas HTML generados pueden incluir claves de servicios cartográficos
 reports/figures/*.html
 enigh-sonora-main/reports/figures/*.html
+
+# Artefactos temporales de generación de presentaciones
+/presentacion_red_vial/
+/presentacion_red_vial_build/
+/presentacion_red_vial_v2/
