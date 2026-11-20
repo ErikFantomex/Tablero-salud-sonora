@@ -1,0 +1,45 @@
+# Python y herramientas
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+env/
+.tools/
+
+# Variables locales y secretos
+.env
+.env.*
+!.env.example
+**/.streamlit/secrets.toml
+
+# Pruebas, cachés y editores
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# Datos descargados o generados, en ambos proyectos
+data/**
+!data/.gitkeep
+enigh-sonora-main/data/**
+!enigh-sonora-main/data/.gitkeep
+*.parquet
+
+# Caché SAKBÉ empaquetado localmente
+/sakbe_cache.zip
+
+# Mapas HTML generados pueden incluir claves de servicios cartográficos
+reports/figures/*.html
+enigh-sonora-main/reports/figures/*.html
