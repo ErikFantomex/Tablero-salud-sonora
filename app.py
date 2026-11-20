@@ -45,10 +45,21 @@ h2 {font-size: clamp(1.35rem, 2.5vw, 1.8rem) !important; margin-top: 1.5rem !imp
 [data-testid="stMetricValue"] {font-size: clamp(1.35rem, 2.6vw, 2rem); color: #0b6159;}
 [data-testid="stPlotlyChart"] {background: white; border: 1px solid #e2ecea; border-radius: 14px; padding: .3rem;}
 .stDataFrame {border: 1px solid #e2ecea; border-radius: 12px; overflow: hidden;}
+.st-key-navegacion_movil {display: none;}
+.st-key-mapa_localidades [data-testid="stPlotlyChart"] .js-plotly-plot,
+.st-key-mapa_municipios [data-testid="stPlotlyChart"] .js-plotly-plot {height: 520px !important;}
+.st-key-ficha_localidad [data-testid="stVerticalBlock"] {gap: .45rem;}
+.st-key-ficha_localidad [data-testid="stMetric"] {min-height: 0; padding: .55rem .8rem;}
+.st-key-ficha_localidad [data-testid="stMetricLabel"] p {white-space: normal;}
 .intro {background: #edf6f3; border-left: 4px solid #087f73; border-radius: 0 12px 12px 0; padding: .9rem 1.1rem; margin: .1rem 0 1.4rem; color: #254d53; line-height: 1.5;}
 .eyebrow {color: #087f73; font-size: .83rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: -.5rem;}
 @media (max-width: 768px) {
   .block-container {padding: 1rem .8rem 2rem;}
+  .st-key-navegacion_movil {display: flex;}
+  .intro {margin-bottom: .5rem; padding: .65rem .8rem;}
+  .eyebrow {display: none;}
+  .st-key-mapa_localidades [data-testid="stPlotlyChart"] .js-plotly-plot,
+  .st-key-mapa_municipios [data-testid="stPlotlyChart"] .js-plotly-plot {height: 340px !important;}
   [data-testid="stHorizontalBlock"] {flex-wrap: wrap; gap: .55rem;}
   [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {min-width: min(100%, 280px); flex: 1 1 100% !important;}
   [data-testid="stMetric"] {min-height: auto;}
@@ -72,6 +83,7 @@ CAMPOS_MUNICIPIO = {
     "minutos_hospital": "Minutos al hospital (media ponderada)",
     "pct_sakbe": "% población con ruta hospitalaria SAKBÉ",
     "doble_barrera": "Personas con doble barrera",
+    "pct_doble_barrera": "% con doble barrera entre personas evaluadas",
     "poblacion_doble_evaluable": "Población evaluada para doble barrera",
     "pct_doble_evaluable": "% evaluado para doble barrera",
     "pct_marginacion_alta": "% en localidades de marginación alta o muy alta",
@@ -240,9 +252,13 @@ def anios_enigh(fuentes: FuentesTablero) -> list[int]:
             if fuentes.ruta_agregado(a, "deciles_sonora").is_file()]
 
 
-def tabla_publica(datos: pd.DataFrame, campos: dict, archivo: str) -> None:
+def tabla_publica(
+    datos: pd.DataFrame, campos: dict, archivo: str, *, primero: tuple[str, ...] = (),
+) -> None:
     tabla = datos[[c for c in campos if c in datos]].rename(columns=campos)
-    st.dataframe(tabla.round(2), hide_index=True, use_container_width=True)
+    orden = [campos[c] for c in primero if c in datos]
+    st.dataframe(tabla.round(2), hide_index=True, use_container_width=True,
+                 column_order=[*orden, *(c for c in tabla if c not in orden)])
     st.download_button("Descargar CSV", tabla.to_csv(index=False).encode("utf-8-sig"),
                        archivo, "text/csv")
 
@@ -274,6 +290,25 @@ def abrir_busqueda_localidad() -> None:
     st.session_state["seccion"] = "Localidades"
     st.session_state["municipio_localidades"] = "Todo Sonora"
     st.session_state["filtro_localidades"] = "Todas"
+
+
+def cambiar_seccion_movil() -> None:
+    st.session_state["seccion"] = st.session_state["seccion_movil"]
+
+
+def mostrar_mapa(figura, clave: str) -> None:
+    """Deja que Plotly ajuste el lienzo al contenedor en cada tamaño de pantalla."""
+    figura.update_layout(height=None, autosize=True, margin=dict(t=48, b=4, l=4, r=4))
+    for traza in figura.data:
+        if traza.type in {"choropleth", "choroplethmap"} and traza.showscale is not False:
+            barra = traza.colorbar
+        elif traza.type in {"scattermap", "scattermapbox"} and traza.marker.showscale:
+            barra = traza.marker.colorbar
+        else:
+            continue
+        barra.update(orientation="h", x=.5, xanchor="center", y=0, yanchor="bottom", len=.7, thickness=10)
+    with st.container(key=clave):
+        st.plotly_chart(figura, use_container_width=True)
 
 
 def resumen(
@@ -323,6 +358,36 @@ def resumen(
     st.caption(f"INEGI · ENIGH {anio} · pesos corrientes del levantamiento.")
 
 
+def detalle_doble_barrera(fila: pd.Series) -> tuple[str, str, str]:
+    casos = fila["doble_barrera"]
+    proporcion = fila["pct_doble_barrera"]
+    cobertura = fila["pct_doble_evaluable"]
+    return (
+        f"{casos:,.0f}" if pd.notna(casos) else "Sin dato",
+        f"{proporcion:.1f} %" if pd.notna(proporcion) else "Sin dato",
+        f"{cobertura:.1f} % ({fila['poblacion_doble_evaluable']:,} de {fila['population']:,} personas)"
+        if pd.notna(cobertura) else "Sin población registrada",
+    )
+
+
+def consultar_doble_barrera(municipios: pd.DataFrame) -> None:
+    por_clave = municipios.sort_values("municipio").set_index("cvegeo")
+    clave = st.selectbox("Consultar casos y cobertura de un municipio", por_clave.index, index=None,
+                         format_func=por_clave["municipio"].get, key="municipio_doble_barrera")
+    if clave is not None:
+        fila = por_clave.loc[clave]
+        casos, proporcion, cobertura = detalle_doble_barrera(fila)
+        with st.container(border=True):
+            st.markdown(
+                f"**{fila['municipio']}**\n\n"
+                f"- Casos confirmados: **{casos}**\n"
+                f"- Entre personas evaluadas: **{proporcion}**\n"
+                f"- Cobertura: **{cobertura}**"
+            )
+            if pd.isna(fila["doble_barrera"]):
+                st.caption("Sin población evaluable. El número de casos se desconoce.")
+
+
 def explorar_municipios(
     municipios: pd.DataFrame, locales: pd.DataFrame, anios: list[int],
     centro: int, hospital: int, fuentes: FuentesTablero,
@@ -351,22 +416,27 @@ def explorar_municipios(
         "pct_marginacion_alta": "%", "ing_pc": "MXN/persona/trimestre",
     }
     opciones = [c for c in indicadores if c in m and (c in {"doble_barrera", "ing_pc"} or m[c].notna().any())]
+    primero = ("municipio", "pct_comprometido", "acceso_comprometido", "population")
     if opciones:
-        campo = st.selectbox("Indicador del mapa", opciones, format_func=CAMPOS_MUNICIPIO.get)
+        campo = st.selectbox("Indicador del mapa", opciones, format_func=CAMPOS_MUNICIPIO.get, key="indicador_municipal")
+        primero = ("municipio", campo, *(c for c in primero[1:] if c != campo))
         detalle = None
         if campo == "doble_barrera":
-            m = m.assign(detalle_doble=m.apply(
-                lambda f: f"Cobertura: {f['poblacion_doble_evaluable']:,} de {f['population']:,} personas "
-                          f"({f['pct_doble_evaluable']:.1f} %)" if f["population"]
-                          else "Sin población registrada",
-                axis=1,
-            ))
+            primero = ("municipio", "doble_barrera", "pct_doble_barrera", "pct_doble_evaluable",
+                       "poblacion_doble_evaluable")
+
+            def texto_municipal(fila: pd.Series) -> str:
+                _, proporcion, cobertura = detalle_doble_barrera(fila)
+                return f"Entre personas evaluadas: {proporcion}<br>Cobertura: {cobertura}"
+
+            m = m.assign(detalle_doble=m.apply(texto_municipal, axis=1))
             detalle = "detalle_doble"
             evaluadas, total = m["poblacion_doble_evaluable"].sum(), m["population"].sum()
             if total:
                 st.info(f"Se pudo evaluar al {evaluadas / total:.1%} de la población de Sonora "
                         f"({evaluadas:,} de {total:,} personas). Los conteos incluyen los casos confirmados. "
                         "Consulta la cobertura de cada municipio antes de comparar.")
+            consultar_doble_barrera(m)
         elif campo == "ing_pc":
             detalle = "estado_enigh"
         geo = cartografia_municipal(fuentes)
@@ -376,7 +446,7 @@ def explorar_municipios(
                                           titulo=CAMPOS_MUNICIPIO[campo], unidad=indicadores[campo],
                                           sin_teselas=fuentes.sin_teselas, columna_detalle=detalle,
                                           mostrar_sin_dato=True)
-            st.plotly_chart(figura, use_container_width=True)
+            mostrar_mapa(figura, "mapa_municipios")
             if campo == "ing_pc":
                 st.caption(f"{len(con_datos)} de {len(m)} municipios tienen una estimación publicable. "
                            "El gris indica que el importe no está disponible. Consulta el motivo en el mapa o la tabla.")
@@ -390,17 +460,8 @@ def explorar_municipios(
                     puntos, columna=campo, columna_nombre="municipio", columna_municipio="municipio",
                     titulo=CAMPOS_MUNICIPIO[campo], unidad=indicadores[campo], sin_teselas=fuentes.sin_teselas,
                 )
-                st.plotly_chart(figura, use_container_width=True)
+                mostrar_mapa(figura, "mapa_municipios")
                 st.caption("Cada marcador se ubica en la localidad con más habitantes del municipio.")
-        if campo == "doble_barrera":
-            por_clave = m.sort_values("municipio").set_index("cvegeo")
-            clave = st.selectbox("Consultar casos y cobertura de un municipio", por_clave.index, index=None,
-                                 format_func=por_clave["municipio"].get)
-            if clave is not None:
-                fila = por_clave.loc[clave]
-                casos = fila["doble_barrera"]
-                resultado = f"{casos:,.0f} personas con doble barrera confirmada" if pd.notna(casos) else "Sin población evaluable"
-                st.write(f"**{fila['municipio']}** · {resultado}. {fila[detalle]}.")
         m = m.sort_values(campo, ascending=False)
     st.caption("Doble barrera · traslado al hospital por encima del umbral y localidad que reporta ausencia de transporte foráneo (RESLOC 2020). Marginación alta · porcentaje entre habitantes con dato CONAPO 2020.")
     if "ing_pc" in m and m["ing_pc"].notna().any():
@@ -414,54 +475,67 @@ def explorar_municipios(
             ), use_container_width=True)
     st.caption("El ingreso municipal es exploratorio y se publica con su estado de calidad. Las coincidencias territoriales combinan años y fuentes distintos.")
     tabla_publica(m.assign(umbral_centro=centro, umbral_hospital=hospital),
-                  CAMPOS_MUNICIPIO, "municipios_sonora.csv")
+                  CAMPOS_MUNICIPIO, "municipios_sonora.csv", primero=primero)
 
 
 def explorar_localidades(locales: pd.DataFrame, centro: int, hospital: int, fuentes: FuentesTablero) -> None:
     st.title("Localidades y acceso a la salud")
-    st.caption("Filtra por municipio y tipo de barrera. Busca una localidad para ver sus tiempos y destinos de atención.")
     if locales.empty:
         sin_salud()
         return
-    a, b, c = st.columns(3)
-    municipio = a.selectbox("Municipio", ["Todo Sonora", *sorted(locales["municipality_name"].dropna().unique())],
-                            key="municipio_localidades")
-    filtro = b.selectbox("Mostrar", ["Acceso comprometido", "Doble barrera", "Todas"], key="filtro_localidades")
-    nivel = c.selectbox("Tiempo en el mapa", ["Hospital", "Atención básica"])
+    fichas = locales.sort_values("population", ascending=False).set_index("locality_id")
+    nombres = fichas["locality_name"] + " · " + fichas["municipality_name"] + " (" + fichas.index + ")"
+    clave = st.selectbox("Buscar por localidad o clave", fichas.index, index=None,
+                         format_func=nombres.get, key="buscar_localidad", placeholder="Escribe el nombre de tu localidad")
+    if clave is not None:
+        ficha_localidad(fichas.loc[clave], fuentes)
+
+    with st.expander("Filtros del mapa y la tabla"):
+        a, b, c = st.columns(3)
+        municipio = a.selectbox("Municipio", ["Todo Sonora", *sorted(locales["municipality_name"].dropna().unique())],
+                                key="municipio_localidades")
+        filtro = b.selectbox("Mostrar", ["Acceso comprometido", "Doble barrera", "Todas"], key="filtro_localidades")
+        nivel = c.selectbox("Tiempo en el mapa", ["Hospital", "Atención básica"], key="nivel_localidades")
+        st.caption("El buscador consulta todo Sonora. Estos filtros afectan al mapa y la tabla.")
     t = locales if municipio == "Todo Sonora" else locales[locales["municipality_name"].eq(municipio)]
     if filtro == "Acceso comprometido":
         t = t[t["comprometida"]]
     elif filtro == "Doble barrera":
         t = t[t["doble_barrera"]]
+    fuera_de_filtro = clave is not None and not t["locality_id"].eq(clave).any()
     if t.empty:
         st.info("Ninguna localidad coincide con los filtros.")
-        return
-    a, b = st.columns(2)
-    a.metric("Localidades en la selección", f"{len(t):,}")
-    b.metric("Población en la selección", f"{int(t['population'].sum()):,}")
-    ordenadas = t.sort_values("population", ascending=False)
-    fichas = ordenadas.set_index("locality_id")
-    nombres = fichas["locality_name"] + " · " + fichas["municipality_name"] + " (" + fichas.index + ")"
-    clave = st.selectbox("Buscar por localidad o clave", fichas.index, index=None, format_func=nombres.get)
-    if clave is not None:
-        ficha_localidad(fichas.loc[clave], fuentes)
+        if clave is None:
+            return
+    else:
+        a, b = st.columns(2)
+        a.metric("Localidades en la selección", f"{len(t):,}")
+        b.metric("Población en la selección", f"{int(t['population'].sum()):,}")
+
     campo, metodo = ("secondary_time_min", "secondary_method") if nivel == "Hospital" else ("primary_time_min", "basic_method")
     if {"latitude", "longitude"}.issubset(t):
+        puntos = pd.concat([t, locales[locales["locality_id"].eq(clave)]]) if fuera_de_filtro else t
         figura = mapas.mapa_localidades(
-            t, columna=campo, columna_metodo=metodo, titulo=f"Traslado · {nivel.lower()}",
+            puntos, columna=campo, columna_metodo=metodo, titulo=f"Traslado · {nivel.lower()}",
             geojson=cartografia_municipal(fuentes) if fuentes.sin_teselas else None,
             sin_teselas=fuentes.sin_teselas, localidad_destacada=clave,
         )
-        st.plotly_chart(figura, use_container_width=True)
+        mostrar_mapa(figura, "mapa_localidades")
         visibles = len(figura.data[0].lat) if figura.data else 0
+        destacada = len(figura.data) > 1
+        if fuera_de_filtro and destacada:
+            visibles -= 1
         if visibles < len(t):
             st.caption(f"El mapa muestra {visibles:,} de {len(t):,} localidades de la selección. "
                        "La tabla incluye todas. Para ver más detalle, filtra por municipio o busca una localidad.")
-        if clave is not None and len(figura.data) > 1:
-            st.caption("El punto azul destaca la localidad seleccionada. Tócalo o pasa el cursor para consultar su tiempo.")
+        if destacada:
+            aviso = " La localidad no coincide con los filtros y se muestra como referencia." if fuera_de_filtro else ""
+            st.caption("El punto azul destaca la localidad seleccionada." + aviso)
         elif clave is not None:
             st.caption("La localidad seleccionada no tiene coordenadas o tiempo para este mapa. Consulta su ficha.")
-    tabla_publica(ordenadas, CAMPOS_LOCALIDAD, "localidades_sonora.csv")
+    if not t.empty:
+        tabla_publica(t.sort_values("population", ascending=False), CAMPOS_LOCALIDAD, "localidades_sonora.csv",
+                      primero=("locality_name", campo, "municipality_name", "population"))
     if filtro == "Todas" and "poblacion_sin_afiliacion" in t:
         grupos = analisis.grupos_vulnerables(t, umbral_primer=centro, umbral_segundo=hospital)
         if not grupos.empty:
@@ -472,32 +546,33 @@ def explorar_localidades(locales: pd.DataFrame, centro: int, hospital: int, fuen
 
 
 def ficha_localidad(fila: pd.Series, fuentes: FuentesTablero) -> None:
-    st.subheader(fila["locality_name"])
     establecimientos = leer(fuentes.salud / "salud-001_establecimientos.parquet")
     unidades = {}
     if {"clues", "nombre_unidad"}.issubset(establecimientos):
         unidades = establecimientos.drop_duplicates("clues").set_index("clues")["nombre_unidad"].to_dict()
-    basica, hospital = st.columns(2)
-    for col, titulo, tiempo, clues, metodo in (
-        (basica, "Atención básica más cercana", fila["primary_time_min"], fila["basic_clues"], fila["basic_method"]),
-        (hospital, "Hospital", fila["secondary_time_min"], fila.get("nearest_secondary_clues"), fila.get("secondary_method")),
-    ):
-        col.metric(titulo, f"{tiempo:.0f} min" if pd.notna(tiempo) else "Sin tiempo")
-        if pd.isna(tiempo):
-            continue
-        if pd.notna(clues):
-            nombre = unidades.get(clues, clues)
-            referencia = pd.notna(metodo) and metodo != "sakbe"
-            col.write(f"Unidad de referencia · {nombre}" if referencia else nombre)
-        if pd.notna(metodo):
-            col.caption(mapas.METODOS_TRASLADO.get(metodo, metodo))
-        else:
-            col.caption("Método no identificado en esta versión de los datos.")
-    destino = fila["basic_destination"]
-    if isinstance(destino, str) and destino == "Hospital":
-        basica.caption("Se usó el tiempo al hospital por ser el menor de los dos.")
-    elif pd.isna(fila["basic_destination"]) and pd.notna(fila["primary_time_min"]):
-        basica.caption("Esta versión de los datos no identifica el destino asociado al mínimo.")
+    with st.container(key="ficha_localidad", border=True):
+        st.subheader(fila["locality_name"])
+        basica, hospital = st.columns(2)
+        for col, titulo, tiempo, clues, metodo in (
+            (basica, "Atención básica más cercana", fila["primary_time_min"], fila["basic_clues"], fila["basic_method"]),
+            (hospital, "Hospital", fila["secondary_time_min"], fila.get("nearest_secondary_clues"), fila.get("secondary_method")),
+        ):
+            col.metric(titulo, f"{tiempo:.0f} min" if pd.notna(tiempo) else "Sin tiempo")
+            if pd.isna(tiempo):
+                continue
+            if pd.notna(clues):
+                nombre = unidades.get(clues, clues)
+                referencia = pd.notna(metodo) and metodo != "sakbe"
+                col.write(f"Unidad de referencia · {nombre}" if referencia else nombre)
+            if pd.notna(metodo):
+                col.caption(mapas.METODOS_TRASLADO.get(metodo, metodo))
+            else:
+                col.caption("Método no identificado en esta versión de los datos.")
+        destino = fila["basic_destination"]
+        if isinstance(destino, str) and destino == "Hospital":
+            basica.caption("Se usó el tiempo al hospital por ser el menor de los dos.")
+        elif pd.isna(destino) and pd.notna(fila["primary_time_min"]):
+            basica.caption("Esta versión de los datos no identifica el destino asociado al mínimo.")
 
 
 def ingreso_bienestar(anios: list[int], fuentes: FuentesTablero) -> None:
@@ -675,8 +750,12 @@ def main() -> None:
                 hospital = st.slider("Hospital (min)", 15, 360, hospital, 5)
                 st.caption("Ajusta el tiempo que consideras un traslado largo. Los indicadores se recalculan al instante.")
         st.caption("Datos preparados para consulta; no necesitas descargar fuentes.")
+    st.session_state["seccion_movil"] = vista
+    with st.container(key="navegacion_movil"):
+        st.selectbox("Sección del tablero", VISTAS, key="seccion_movil", on_change=cambiar_seccion_movil)
     st.markdown('<div class="eyebrow">Tablero público de Sonora</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="intro">{DESCRIPCIONES[vista]}</div>', unsafe_allow_html=True)
+    if vista != "Localidades":
+        st.markdown(f'<div class="intro">{DESCRIPCIONES[vista]}</div>', unsafe_allow_html=True)
     anios = anios_enigh(fuentes)
     if vista == "Ingreso y bienestar":
         ingreso_bienestar(anios, fuentes)

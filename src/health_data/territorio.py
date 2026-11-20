@@ -118,6 +118,7 @@ def resumir_municipios(t: pd.DataFrame) -> pd.DataFrame:
     m["municipio"] = grupos["municipality_name"].first()
     for nombre, numerador, denominador in (
         ("pct_comprometido", "acceso_comprometido", "poblacion_evaluada"),
+        ("pct_doble_barrera", "doble_barrera", "poblacion_doble_evaluable"),
         ("pct_doble_evaluable", "poblacion_doble_evaluable", "population"),
         ("pct_sakbe", "poblacion_sakbe", "population"),
         ("pct_marginacion_alta", "marginacion_alta", "poblacion_con_marginacion"),

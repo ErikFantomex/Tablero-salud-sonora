@@ -93,7 +93,7 @@ def test_resumen_cambia_con_umbral_y_excluye_poblacion_sin_tiempo(fuentes):
     assert not at.exception
     assert at.metric[0].value == "250"
     navegar(at, "Localidades")
-    at.selectbox[1].set_value("Doble barrera").run()
+    at.selectbox(key="filtro_localidades").set_value("Doble barrera").run()
     assert not at.exception
     assert at.metric[1].value == "250"
 

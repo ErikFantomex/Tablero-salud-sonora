@@ -38,6 +38,9 @@ y funcionan sin teselas en este modo.
 3. Lee el tiempo en la tarjeta **Hospital**. Debajo aparece la unidad de
    referencia y el método que se usó para obtener el tiempo.
 
+El buscador está encima de **Filtros del mapa y la tabla** y consulta todo
+Sonora. En celular puedes cambiar de vista desde **Sección del tablero**.
+
 ![Ficha de Hermosillo con el tiempo al hospital y el método de cálculo](docs/tablero-primera-consulta.png)
 
 La captura usa el corte de datos **0.1.1**, generado el **20 de noviembre de

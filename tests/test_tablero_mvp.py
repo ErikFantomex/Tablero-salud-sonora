@@ -50,25 +50,39 @@ def test_cinco_vistas_del_mvp_sin_red_ni_credenciales(monkeypatch):
     assert not tablero.exception
     assert tablero.sidebar.radio[0].value == "Localidades"
     assert tablero.selectbox(key="filtro_localidades").value == "Todas"
-    tablero.selectbox[3].set_value("260300001").run()
+    tablero.selectbox(key="buscar_localidad").set_value("260300001").run()
     assert not tablero.exception
     assert any(m.label == "Hospital" and m.value.endswith(" min") for m in tablero.metric)
     assert any(c.value == "Calculado por SAKBÉ" for c in tablero.caption)
 
-    tablero.sidebar.radio[0].set_value("Municipios").run()
+    tablero.selectbox(key="seccion_movil").set_value("Municipios").run()
     assert not tablero.exception
+    assert tablero.sidebar.radio[0].value == "Municipios"
     assert len(tablero.dataframe[0].value) == 72
     _comprobar_mapa_local(tablero, "choroplethmap")
-    tablero.selectbox[1].set_value("doble_barrera").run()
+    tablero.selectbox(key="indicador_municipal").set_value("doble_barrera").run()
     assert not tablero.exception
     assert "10.1%" in tablero.info[0].value
     doble = _comprobar_mapa_local(tablero, "choroplethmap")
     assert all("Cobertura:" in detalle for traza in doble["data"] for detalle in traza["hovertext"])
-    tablero.selectbox[2].set_value("26001").run()
+    tabla_doble = tablero.dataframe[0].value.set_index("Clave INEGI")
+    casos, porcentaje = "Personas con doble barrera", "% con doble barrera entre personas evaluadas"
+    sin_casos = tabla_doble[tabla_doble[casos].eq(0)].index[0]
+    sin_dato = tabla_doble[tabla_doble[casos].isna()].index[0]
+    tablero.selectbox(key="municipio_doble_barrera").set_value(sin_casos).run()
     assert not tablero.exception
-    assert any("Cobertura:" in texto.value for texto in tablero.markdown)
+    detalle = next(texto.value for texto in tablero.markdown if "Casos confirmados:" in texto.value)
+    assert "Casos confirmados: **0**" in detalle
+    assert "Entre personas evaluadas: **0.0 %**" in detalle
+    assert "Cobertura:" in detalle
+    assert tabla_doble.loc[sin_casos, porcentaje] == 0
+    tablero.selectbox(key="municipio_doble_barrera").set_value(sin_dato).run()
+    detalle = next(texto.value for texto in tablero.markdown if "Casos confirmados:" in texto.value)
+    assert "Casos confirmados: **Sin dato**" in detalle
+    assert "Entre personas evaluadas: **Sin dato**" in detalle
+    assert "Cobertura: **0.0 %" in detalle
 
-    tablero.selectbox[1].set_value("ing_pc").run()
+    tablero.selectbox(key="indicador_municipal").set_value("ing_pc").run()
     assert not tablero.exception
     gris, valores = _comprobar_mapa_local(tablero, "choroplethmap")["data"]
     assert gris["showscale"] is False
@@ -78,16 +92,20 @@ def test_cinco_vistas_del_mvp_sin_red_ni_credenciales(monkeypatch):
 
     tablero.sidebar.radio[0].set_value("Localidades").run()
     assert not tablero.exception
+    assert tablero.selectbox(key="seccion_movil").value == "Localidades"
     assert not tablero.dataframe[0].value.empty
     _comprobar_mapa_local(tablero, "scattermap")
-    tablero.selectbox[1].set_value("Todas").run()
+    tablero.selectbox(key="buscar_localidad").set_value("260300001").run()
+    assert any("no coincide con los filtros" in c.value for c in tablero.caption)
+    assert len(_comprobar_mapa_local(tablero, "scattermap")["data"]) == 2
+    tablero.selectbox(key="filtro_localidades").set_value("Todas").run()
     assert not tablero.exception
     assert any("5,000 de 7,297 localidades" in texto.value for texto in tablero.caption)
     salud = pd.read_parquet(RAIZ / "datos_mvp/salud/accesibilidad_localidades.parquet")
     fila = salud[salud["secondary_time_min"].lt(salud["primary_facility_time_min"])].iloc[0]
-    tablero.selectbox[3].set_value(fila["locality_id"]).run()
+    tablero.selectbox(key="buscar_localidad").set_value(fila["locality_id"]).run()
     assert not tablero.exception
-    assert tablero.metric[2].value == tablero.metric[3].value == f"{fila['secondary_time_min']:.0f} min"
+    assert tablero.metric[0].value == tablero.metric[1].value == f"{fila['secondary_time_min']:.0f} min"
     assert any("Se usó el tiempo al hospital" in texto.value for texto in tablero.caption)
     publicada = tablero.dataframe[0].value.set_index("Clave INEGI").loc[fila["locality_id"]]
     assert publicada["CLUES de referencia para atención básica"] == fila["nearest_secondary_clues"]
@@ -97,10 +115,11 @@ def test_cinco_vistas_del_mvp_sin_red_ni_credenciales(monkeypatch):
     assert seleccionada["name"] == "Localidad seleccionada"
     assert seleccionada["lat"] == [fila["latitude"]]
     assert seleccionada["lon"] == [fila["longitude"]]
+    assert list(tablero.dataframe[0].proto.column_order)[:2] == ["Localidad", "Minutos al hospital"]
 
     tablero.sidebar.radio[0].set_value("Ingreso y bienestar").run()
     assert not tablero.exception
-    assert {"2020", "2022", "2024"}.issubset(tablero.selectbox[0].options)
+    assert {"2020", "2022", "2024"}.issubset(next(s.options for s in tablero.selectbox if s.label == "Año de la encuesta"))
     for vista in ("Evolución", "Bienestar"):
         tablero.radio(key="analisis_enigh").set_value(vista).run()
         assert not tablero.exception
