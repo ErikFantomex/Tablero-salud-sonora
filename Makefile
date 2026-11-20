@@ -1,6 +1,7 @@
 PYTHON ?= $(shell which python3.12 2>/dev/null || which python3)
 VENV   := .venv
 PY     := $(VENV)/bin/python
+COMPOSE_DATOS := docker compose -f docker-compose.yml -f docker-compose.datos.yml
 
 .PHONY: help install venv data rutas download app test lint fmt clean clean-data \
         docker-build docker-app docker-data docker-rutas docker-download docker-test docker-lint \
@@ -74,16 +75,16 @@ docker-build:
 	docker compose build
 
 docker-rutas:
-	docker compose run --rm app python -m health_data.processing.ruteo --sakbe
+	$(COMPOSE_DATOS) run --rm app python -m health_data.processing.ruteo --sakbe
 
 docker-app:
 	docker compose up --build app
 
 docker-data:
-	docker compose run --rm app python -m health_data.pipeline
+	$(COMPOSE_DATOS) run --rm app python -m health_data.pipeline
 
 docker-download:
-	docker compose run --rm app python -m health_data.ingestion.descarga $(FUENTE)
+	$(COMPOSE_DATOS) run --rm app python -m health_data.ingestion.descarga $(FUENTE)
 
 docker-test:
 	docker compose run --rm app python -m pytest tests/ -v
@@ -92,7 +93,7 @@ docker-lint:
 	docker compose run --rm app ruff check src/ tests/ app.py
 
 docker-shell:
-	docker compose run --rm app bash
+	$(COMPOSE_DATOS) run --rm app bash
 
 docker-down:
 	docker compose down

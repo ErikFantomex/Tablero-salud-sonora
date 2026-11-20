@@ -3,27 +3,34 @@
 .vscode
 .idea
 
-.venv
-.tools
+**/.venv
+**/venv
+**/env
+**/.tools
 .datos_mvp-*
+**/*.egg-info
+build
+dist
 
-__pycache__
-*.py[cod]
-.pytest_cache
-.ruff_cache
-.ipynb_checkpoints
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.ipynb_checkpoints
 
-.env
-.env.*
+**/.env
+**/.env.*
 **/.streamlit/secrets.toml
 sakbe_cache.zip
 
 data/**
 enigh-sonora-main/data/**
 
-reports/figures/*
+**/*.log
+**/.DS_Store
+**/Thumbs.db
 
-*.log
-.DS_Store
-
-!reports/figures/.gitkeep
+notebooks
+reports
+enigh-sonora-main/docs

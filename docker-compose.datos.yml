@@ -1,0 +1,9 @@
+# Activar explícitamente para actualizar datos o probar resultados locales.
+services:
+  app:
+    volumes:
+      - .:/project
+    environment:
+      SONORA_DATOS: ${SONORA_DATOS:-local}
+      SAKBE_TOKENS: ${SAKBE_TOKENS:-}
+      SAKBE_TOKEN: ${SAKBE_TOKEN:-}

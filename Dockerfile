@@ -10,27 +10,18 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /project
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl \
-        make \
-    && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt ./
+RUN python -m pip install -r requirements.txt \
+    && useradd --create-home data-user
 
-COPY requirements.txt /tmp/requirements.txt
-
-RUN python -m pip install --upgrade pip \
-    && python -m pip install -r /tmp/requirements.txt \
-    && rm -f /tmp/requirements.txt
-
-COPY . /project
-
-RUN useradd \
-        --create-home \
-        --shell /bin/bash \
-        data-user \
-    && chown -R data-user:data-user /project
+COPY --chown=data-user:data-user . .
+RUN python -m health_data.publicar_mvp --verificar
 
 USER data-user
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+HEALTHCHECK --interval=5s --timeout=3s --start-period=20s --retries=5 \
+    CMD ["python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8501/_stcore/health', timeout=2).close()"]
+
+CMD ["python", "-m", "streamlit", "run", "app.py", "--server.address=0.0.0.0", "--server.port=8501"]

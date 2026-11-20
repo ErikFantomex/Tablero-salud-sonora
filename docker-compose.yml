@@ -4,30 +4,11 @@ services:
       context: .
       dockerfile: Dockerfile
 
-    image: data-health-mcd-unison:dev
-    container_name: data-health-app
+    image: tablero-salud-sonora:local
 
     ports:
-      - "8501:8501"
-
-    volumes:
-      - .:/project
-
-    working_dir: /project
+      - "127.0.0.1:${SONORA_PUERTO:-8501}:8501"
 
     environment:
-      PYTHONPATH: /project/src
-      PYTHONUNBUFFERED: "1"
-      PYTHONDONTWRITEBYTECODE: "1"
-      SONORA_DATOS: ${SONORA_DATOS:-mvp}
       SONORA_MAPA: ${SONORA_MAPA:-}
-      SAKBE_TOKENS: ${SAKBE_TOKENS:-}
-      SAKBE_TOKEN: ${SAKBE_TOKEN:-}
       CARTO_API_KEY: ${CARTO_API_KEY:-}
-
-    command:
-      - streamlit
-      - run
-      - app.py
-      - --server.address=0.0.0.0
-      - --server.port=8501
