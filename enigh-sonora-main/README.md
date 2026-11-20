@@ -6,7 +6,7 @@ que consume esa aplicación. Las descripciones de las vistas más abajo document
 el diseño original; el único tablero ejecutable está en `../app.py`.
 
 <p align="center">
-  <img src="assets/logo_mcd.png" alt="Maestría en Ciencia de Datos, Universidad de Sonora" width="120">
+  <img src="../assets/logo_mcd.png" alt="Maestría en Ciencia de Datos, Universidad de Sonora" width="120">
 </p>
 
 <p align="center">
@@ -22,34 +22,27 @@ indicadores de bienestar más allá del ingreso.
 
 ---
 
-## Arranque rápido
+## Regenerar datos ENIGH
 
 ```bash
-make install     # crea el entorno virtual e instala dependencias
-make data        # descarga la ENIGH y procesa los tres años (~5 min, 287 MB)
-make app         # levanta el tablero integrado de la raíz
-```
-
-Si tienes prisa, `make data-fast` omite el cálculo de intervalos de confianza
-(bootstrap) y tarda una fracción del tiempo; el tablero funciona igual, solo que
-las gráficas no muestran bigotes de incertidumbre.
-
-El tablero integrado ya incluye agregados ENIGH procesados en `../datos_mvp/`.
-Ejecuta `make data` solo cuando quieras regenerarlos desde las fuentes públicas.
-
-Sin `make`:
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python -m enigh.pipeline
 cd ..
+python -m pip install -r requirements.txt
+python -m pip install -e .
+cd enigh-sonora-main
+python -m enigh.pipeline --sin-bootstrap
+cd ..
+python -m health_data.publicar_mvp --version 0.1.1
 python -m streamlit run app.py
 ```
 
+Quita `--sin-bootstrap` para calcular intervalos de confianza.
+
+El tablero integrado ya incluye agregados ENIGH procesados en `../datos_mvp/`.
+Ejecuta el pipeline solo cuando quieras regenerarlos desde las fuentes públicas.
+
 ---
 
-## Qué responde el tablero
+## Diseño del tablero ENIGH original
 
 | Vista | Qué muestra |
 |---|---|
@@ -162,9 +155,9 @@ enigh/              paquete de análisis (sin dependencia de Streamlit)
   validacion.py     comprobaciones contra cifras de control
   pipeline.py       orquestador con CLI
 ../app.py           único tablero Streamlit del repositorio
-assets/             emblema de la Maestría en Ciencia de Datos
+../assets/          emblema compartido de la Maestría en Ciencia de Datos
 config/             fuentes.yaml, deflactores.csv, validacion.csv
-data/               NO versionado: se genera con `make data` (solo .gitkeep)
+data/               NO versionado: se genera con el pipeline (solo .gitkeep)
 docs/               evidencia de la verificación del INPC (boletines y serie)
 tests/              pruebas del pipeline y de sus resultados
 ```
@@ -177,7 +170,7 @@ que una cadena en YAML no haría.
 
 ### Sobre los datos en el control de versiones
 
-`data/` está en `.gitignore` y **no** forma parte del repositorio:
+`data/` está excluido por el `.gitignore` de la raíz y **no** forma parte del repositorio:
 
 | Carpeta | Tamaño | Qué es |
 |---|---|---|
@@ -265,8 +258,8 @@ Desarrollado y probado con **Python 3.12.8**, `pandas` 2.2.3, `numpy` 2.1.3,
 usa `geopandas` ni `shapely`**: requieren compilación frágil y los mapas se
 construyen con Plotly sobre GeoJSON crudo en memoria.
 
-El intérprete de Python del proyecto vive en `.tools/` (no versionado) porque el
-entorno de desarrollo no permite escribir en `/opt/homebrew` ni en `~/.local`.
+Las dependencias del tablero y del pipeline se instalan desde el
+`requirements.txt` de la raíz.
 
 ---
 
