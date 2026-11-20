@@ -25,6 +25,37 @@ from health_data.visualization import mapas  # noqa: E402
 
 TITULO = "Sonora: salud, ingreso y territorio"
 VISTAS = ["Resumen", "Municipios", "Localidades", "Ingreso y bienestar", "Calidad y metodología"]
+DESCRIPCIONES = {
+    "Resumen": "Una lectura rápida de las principales barreras para llegar a servicios de salud y del ingreso en Sonora.",
+    "Municipios": "Compara los 72 municipios. Elige una medida para ver dónde se concentra cada situación.",
+    "Localidades": "Busca comunidades, filtra los resultados y consulta sus tiempos de traslado estimados.",
+    "Ingreso y bienestar": "Explora cómo se distribuye el ingreso y cómo han cambiado las condiciones de vida.",
+    "Calidad y metodología": "Conoce las fuentes, la cobertura y las precauciones para interpretar los resultados.",
+}
+ESTILOS = """
+<style>
+/* Diseño de lectura: ancho acotado, controles claros y tarjetas de indicadores. */
+.block-container {max-width: 1320px; padding-top: 1.4rem; padding-bottom: 3rem;}
+section[data-testid="stSidebar"] {background: #f2f7f6; border-right: 1px solid #d9e7e4;}
+h1, h2, h3 {color: #153b43; letter-spacing: -.025em;}
+h1 {font-size: clamp(1.8rem, 3.5vw, 2.75rem) !important; line-height: 1.15 !important;}
+h2 {font-size: clamp(1.35rem, 2.5vw, 1.8rem) !important; margin-top: 1.5rem !important;}
+[data-testid="stMetric"] {background: #fff; border: 1px solid #dce9e6; border-radius: 14px; padding: 1rem; box-shadow: 0 3px 16px #153b4309; min-height: 130px;}
+[data-testid="stMetricLabel"] {font-size: .95rem; color: #47636a;}
+[data-testid="stMetricValue"] {font-size: clamp(1.35rem, 2.6vw, 2rem); color: #0b6159;}
+[data-testid="stPlotlyChart"] {background: white; border: 1px solid #e2ecea; border-radius: 14px; padding: .3rem;}
+.stDataFrame {border: 1px solid #e2ecea; border-radius: 12px; overflow: hidden;}
+.intro {background: #edf6f3; border-left: 4px solid #087f73; border-radius: 0 12px 12px 0; padding: .9rem 1.1rem; margin: .1rem 0 1.4rem; color: #254d53; line-height: 1.5;}
+.eyebrow {color: #087f73; font-size: .83rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: -.5rem;}
+@media (max-width: 768px) {
+  .block-container {padding: 1rem .8rem 2rem;}
+  [data-testid="stHorizontalBlock"] {flex-wrap: wrap; gap: .55rem;}
+  [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {min-width: min(100%, 280px); flex: 1 1 100% !important;}
+  [data-testid="stMetric"] {min-height: auto;}
+  [data-testid="stPlotlyChart"] {overflow-x: auto;}
+}
+</style>
+"""
 SALUD = "Población ITER 2020 · establecimientos CLUES · tiempos en automóvil SAKBÉ o estimaciones."
 PALETA = ["#087f73", "#bd511d"]
 UNIDAD = "Pesos corrientes por persona al trimestre"
@@ -239,7 +270,7 @@ def resumen(
     centro: int, hospital: int, fuentes: FuentesTablero,
 ) -> None:
     st.title(TITULO)
-    st.markdown("Explora dónde coinciden los traslados largos a servicios de salud y las desventajas económicas y sociales.")
+    st.markdown("Identifica dónde es más difícil llegar a servicios de salud y cómo se relaciona con las condiciones de vida.")
     if locales.empty:
         sin_salud()
     else:
@@ -251,6 +282,7 @@ def resumen(
         c1.metric("Personas con acceso comprometido", f"{acceso:,}", f"{100 * acceso / evaluada:.2f} % de la población evaluada" if evaluada else None, delta_color="off")
         c2.metric("Localidades con acceso comprometido", f"{locales['comprometida'].sum():,}")
         c3.metric("Población con ruta al hospital medida", f"{100 * cobertura / poblacion:.2f} %" if poblacion else "Sin dato")
+        st.info("**Cómo leer estas cifras:** ‘acceso comprometido’ significa que el traslado supera alguno de los tiempos elegidos. Solo se calcula el porcentaje con personas para las que hay información suficiente.")
         st.caption(f"Umbrales de traslado · más de {centro} min al centro de salud o más de {hospital} min al hospital. Población evaluada: {evaluada:,} de {poblacion:,}.")
         nota_rutas(locales)
         m = municipios.nlargest(10, "acceso_comprometido").query("acceso_comprometido > 0")
@@ -274,6 +306,7 @@ def resumen(
     b.metric("Ingreso mediano trimestral per cápita", pesos(fila.get("ing_pc_mediana_global", float("nan"))))
     gini = fila.get("gini_global", float("nan"))
     c.metric("Coeficiente de Gini", f"{gini:.3f}" if pd.notna(gini) else "Sin dato")
+    st.caption("El ingreso está expresado por persona y por trimestre. El índice de Gini va de 0 (ingresos iguales) a 1 (mayor desigualdad).")
     st.caption(f"INEGI · ENIGH {anio} · pesos corrientes del levantamiento.")
 
 
@@ -282,6 +315,7 @@ def explorar_municipios(
     centro: int, hospital: int, fuentes: FuentesTablero,
 ) -> None:
     st.title("Explorador municipal")
+    st.caption("Selecciona un indicador para colorear el mapa. Un color más intenso representa un valor mayor; consulta la tabla para el dato exacto.")
     if municipios.empty:
         sin_salud()
         return
@@ -341,6 +375,7 @@ def explorar_municipios(
 
 def explorar_localidades(locales: pd.DataFrame, centro: int, hospital: int, fuentes: FuentesTablero) -> None:
     st.title("Localidades y acceso a la salud")
+    st.caption("Filtra por municipio y tipo de barrera. Selecciona una localidad en la ficha para ver su centro de salud y hospital asociados.")
     if locales.empty:
         sin_salud()
         return
@@ -398,6 +433,7 @@ def explorar_localidades(locales: pd.DataFrame, centro: int, hospital: int, fuen
 
 def ingreso_bienestar(anios: list[int], fuentes: FuentesTablero) -> None:
     st.title("Ingreso y bienestar")
+    st.caption("Los deciles dividen a la población en diez grupos según ingreso: el 1 reúne a quienes tienen menos y el 10 a quienes tienen más.")
     if not anios:
         sin_enigh()
         return
@@ -548,7 +584,8 @@ Las series en pesos constantes usan el INPC de INEGI.
 
 
 def main() -> None:
-    st.set_page_config(page_title=TITULO, layout="wide")
+    st.set_page_config(page_title=TITULO, layout="wide", initial_sidebar_state="auto")
+    st.markdown(ESTILOS, unsafe_allow_html=True)
     try:
         fuentes = resolver_fuentes()
     except ValueError as exc:
@@ -556,13 +593,18 @@ def main() -> None:
         return
     cfg = config.cargar_configuracion().umbrales
     with st.sidebar:
-        st.header("Sonora")
-        vista = st.radio("Navegación", VISTAS)
+        st.header("Explora Sonora")
+        st.caption("Salud · territorio · bienestar")
+        vista = st.radio("Secciones", VISTAS)
         centro, hospital = cfg.tiempo_critico_min, cfg.tiempo_critico_segundo_nivel_min
         if vista in ("Resumen", "Municipios", "Localidades"):
             with st.expander("Escenarios de traslado"):
                 centro = st.slider("Centro de salud (min)", 15, 240, centro, 5)
                 hospital = st.slider("Hospital (min)", 15, 360, hospital, 5)
+                st.caption("Ajusta el tiempo que consideras un traslado largo. Los indicadores se recalculan al instante.")
+        st.caption("Datos preparados para consulta; no necesitas descargar fuentes.")
+    st.markdown('<div class="eyebrow">Tablero público de Sonora</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="intro">{DESCRIPCIONES[vista]}</div>', unsafe_allow_html=True)
     anios = anios_enigh(fuentes)
     if vista == "Ingreso y bienestar":
         ingreso_bienestar(anios, fuentes)
