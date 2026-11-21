@@ -1,25 +1,32 @@
-# Sonora · Salud, ingreso y territorio
+# Tablero de Salud Sonora
 
-El tablero integrado cruza los tiempos de traslado a servicios de salud con el
-contexto de marginación, transporte e ingreso en Sonora. El punto de entrada es
-`app.py` en la raíz. La navegación incluye un resumen estatal, un explorador
-municipal, localidades, ingreso y bienestar, red vial y brigadas, y calidad de las fuentes.
+Tablero Streamlit para explorar accesibilidad a servicios de salud, contexto socioeconómico y escenarios de red vial en Sonora. El MVP funciona con los datos versionados en [`datos_mvp/`](datos_mvp/) y no necesita descargar datos al arrancar.
 
-**Red vial y brigadas** incluye un cierre simulado de carretera y un recorrido
-de ida y vuelta para hasta ocho localidades del piloto de Yécora. El tablero
-compara el orden elegido con el óptimo para esas paradas usando tiempos
-dirigidos de la Red Nacional de Caminos 2025. Son escenarios de análisis,
-con tiempos de conducción estimados dentro del recorte regional.
+## Qué incluye
 
-## Abrir el tablero integrado
+- **Resumen estatal y municipios:** población, tiempos y brechas de acceso.
+- **Localidades:** búsqueda por nombre o clave INEGI y mapa de accesibilidad.
+- **Ingreso y bienestar:** agregados ENIGH para Sonora y sus municipios.
+- **Red vial y brigadas:** cierre simulado de carretera y recorrido optimizado para una brigada en el piloto de Yécora.
+- **Calidad de datos:** cobertura, métodos de cálculo y advertencias.
 
-Con Docker, desde la raíz:
+## Resultados principales del MVP
+
+- La accesibilidad se calcula como tiempo de traslado en automóvil al servicio más cercano. La mayoría de las brechas se concentra en el acceso hospitalario.
+- El escenario de cierre vial de Yécora cubre **70 localidades y 4,558 personas**. Las 70 siguen conectadas; el aumento máximo observado es de **5.23 minutos**.
+- En el ejemplo de brigada, el recorrido optimizado baja de **262.9 a 202.3 minutos**, un ahorro estimado de **60.6 minutos**. No incluye tiempo de visita ni tramos fuera de la red.
+
+Estos son escenarios analíticos, no mediciones de operación en campo.
+
+## Ejecutar el tablero
+
+Con Docker:
 
 ```powershell
 docker compose up --build --wait app
 ```
 
-Sin Docker, con Python 3.12 desde la raíz:
+Sin Docker:
 
 ```powershell
 python -m pip install -r requirements.txt
@@ -27,355 +34,43 @@ python -m pip install -e .
 python -m streamlit run app.py
 ```
 
-Abre <http://localhost:8501>. El repositorio incluye en [datos_mvp/](datos_mvp/)
-los Parquet de salud e ingreso, los límites municipales y el resumen de las
-consultas SAKBÉ. Una vez instaladas las dependencias o construida la imagen de
-Docker, puedes iniciar el tablero sin descargar las fuentes, ejecutar los
-pipelines ni configurar claves de API. Los mapas usan la cartografía incluida
-y funcionan sin teselas en este modo.
+Abre <http://localhost:8501>.
 
-### Tu primera consulta
+## Datos y reproducibilidad
 
-1. En **Resumen**, elige **Consulta tu localidad**. La vista se abre con el
-   filtro **Todas**.
-2. Escribe el nombre de tu comunidad en **Buscar por localidad o clave**.
-   Si hay nombres repetidos, confirma el municipio o la clave INEGI. Por
-   ejemplo, la ciudad de Hermosillo tiene la clave `260300001`.
-3. Lee el tiempo en la tarjeta **Hospital**. Debajo aparece la unidad de
-   referencia y el método que se usó para obtener el tiempo.
+`datos_mvp/manifest.json` registra versión, fuentes, fechas y SHA-256. El paquete incluye Parquet de salud e ingreso, límites municipales, el resumen de SAKBÉ y los archivos viales del piloto. Los tiempos SAKBÉ representan rutas en automóvil en condiciones óptimas; algunas localidades usan respaldos cuando no hay ruta disponible.
 
-El buscador está encima de **Filtros del mapa y la tabla** y consulta todo
-Sonora. En celular puedes cambiar de vista desde **Sección del tablero**.
+Para trabajar con datos generados localmente, usa el Compose adicional:
 
-![Ficha de Hermosillo con el tiempo al hospital y el método de cálculo](docs/tablero-primera-consulta.png)
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.datos.yml up --build
+```
 
-La captura usa el corte de datos **0.1.1**, generado el **20 de noviembre de
-2026 (UTC)**. La fecha corresponde a la preparación del paquete. El
-manifiesto registra los años y fechas de cada fuente.
+El mapa puede usar el modo local (`SONORA_MAPA=sin_teselas`) o teselas externas (`SONORA_MAPA=en_linea`).
 
-El [manifiesto de datos](datos_mvp/manifest.json) registra la versión, las
-fuentes, las fechas y el SHA-256 de cada archivo. Los datos ENIGH de esta
-versión son estimaciones puntuales de 2020, 2022 y 2024, calculadas sin
-bootstrap. La tabla de accesibilidad deriva del Censo 2020, el catálogo CLUES,
-CONEVAL e INEGI, API de Ruteo SAKBÉ 3.1. Las fechas de consulta están en el
-manifiesto y en la vista de calidad.
-
-### Actualizar los datos del MVP
-
-1. Ejecuta `python -m health_data.pipeline` para preparar los insumos de salud.
-   Con estos insumos y `data/interim/sakbe_cache.sqlite`, ejecuta
-   `python -m health_data.processing.ruteo` para reconstruir las rutas desde el
-   caché.
-2. Ejecuta `python -m enigh.pipeline` desde `enigh-sonora-main`. Puedes añadir
-   `--sin-bootstrap` para generar estimaciones puntuales. Con Docker, el
-   equivalente es `docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm -w /project/enigh-sonora-main app python -m enigh.pipeline`.
-3. Para actualizar el piloto vial, ejecuta la
-   [libreta de red vial](notebooks/3.2-eda-red-vial-acceso-hospitalario.ipynb).
-   Sus últimas celdas generan los tres archivos viales incorporados al MVP.
-4. Desde la raíz, genera y revisa el reporte de comparación sin sustituir la
-   versión vigente. El reporte queda en `data/calidad/comparacion_mvp.md`.
-   Resume archivos y fuentes, cambios de localidades, claves que no cruzan y
-   cobertura por método. Los datos inválidos, como claves duplicadas, columnas
-   obligatorias ausentes y tiempos negativos, bloquean la publicación.
-
-   ```powershell
-   python -m health_data.publicar_mvp --version 0.1.3 --solo-reporte
-   ```
-
-5. Revisa las alertas y publica el candidato cuando esté listo.
-
-   ```powershell
-   python -m health_data.publicar_mvp --version 0.1.3
-   python -m health_data.publicar_mvp --verificar
-   ```
-
-En desarrollo, define `SONORA_DATOS=local` para usar los resultados de los
-pipelines desde sus carpetas de trabajo. Usa `SONORA_MAPA=sin_teselas` para el
-mapa local o `SONORA_MAPA=en_linea` para cargar teselas externas. Docker
-Compose toma `SONORA_MAPA` del entorno o de `.env`. La imagen usa
-`SONORA_DATOS=mvp`; para abrir el tablero con resultados de trabajo y archivos
-del equipo, añade `-f docker-compose.yml -f docker-compose.datos.yml` antes de
-`up`.
-
-El explorador cruza agregados por clave municipal INEGI. Muestra la cobertura
-de SAKBÉ y distingue las estimaciones ENIGH con muestra o precisión insuficiente.
-El ingreso es trimestral per cápita y la comparación municipal es exploratoria.
-El cálculo de escenarios usa los umbrales de la barra lateral y conserva los
-tiempos originales. El proyecto ENIGH de Julio Waissman conserva su documentación
-en [enigh-sonora-main](enigh-sonora-main/README.md).
-
-## Componente de accesibilidad a servicios de salud
-
-Proyecto de ciencia de datos para identificar localidades de Sonora con mayores tiempos de traslado por carretera hacia establecimientos de salud de primer y segundo nivel.
-
-## Objetivo
-
-Para cada localidad de Sonora se busca obtener:
-
-- Establecimiento operativo de primer nivel más cercano.
-- Distancia y tiempo de traslado al primer nivel.
-- Establecimiento operativo de segundo nivel más cercano.
-- Distancia y tiempo de traslado al segundo nivel.
-
-Los resultados se relacionarán con población, edad, discapacidad, movilidad y disponibilidad de vehículo.
-
-## Pregunta principal
-
-> ¿Dónde se concentran las poblaciones de Sonora con menor accesibilidad geográfica a servicios de salud?
-
-## Fuentes de datos
-
-- **ITER 2020, INEGI:** población y características de las localidades.
-- **CLUES, Secretaría de Salud:** ubicación, nivel y estado de los establecimientos.
-- **Marco Geoestadístico, INEGI:** límites territoriales y validación de coordenadas.
-- **SAKBÉ, INEGI:** distancias y tiempos de traslado por carretera.
-- **GACP 2020, CONEVAL:** grado de aislamiento de las localidades; respaldo cuando SAKBÉ no encuentra ruta.
-
-Cada fuente tiene su diccionario en `references/`. Las descargas quedan registradas, con su huella SHA-256, en
-`catalog/ingestions.csv`, y descritas en `references/fuentes_descargadas.md`.
-
-El flujo de [fuentes complementarias](docs/workflow.md#fuentes-complementarias-para-el-eda-de-accesibilidad)
-prepara las tablas de transporte público y marginación por localidad para el EDA.
-
-## Flujo de datos
+## Estructura útil
 
 ```text
-Fuentes
-  ↓
-data/raw        Datos originales
-  ↓
-data/interim    Datos limpios y validados
-  ↓
-Routing         Distancias y tiempos
-  ↓
-data/processed  Dataset final por localidad
-  ↓
-Streamlit       Mapas e indicadores
+app.py                         # aplicación Streamlit
+datos_mvp/                     # datos publicados del MVP
+src/health_data/               # ingesta, ruteo y visualizaciones
+enigh-sonora-main/             # pipeline de ENIGH
+notebooks/                     # EDA y generación de escenarios
+tests/                         # pruebas automatizadas
+Dockerfile                     # ejecución reproducible
+docker-compose*.yml            # tablero y modo de actualización
 ```
 
-## Estructura
-
-```text
-Data-Health-MCD-Unison/
-├── catalog/                 # Catálogo de fuentes
-├── data/
-│   ├── raw/                 # Datos originales
-│   ├── interim/             # Datos limpios
-│   └── processed/           # Datos finales
-├── docs/                    # Documentación
-├── notebooks/               # Exploración y análisis
-├── reports/figures/         # Gráficas y mapas
-├── src/health_data/
-│   ├── ingestion/           # Descarga y lectura
-│   ├── processing/          # Limpieza, validación y routing
-│   └── visualization/       # Mapas y gráficas
-├── tests/                   # Pruebas
-├── app.py                   # Tablero Streamlit
-├── Dockerfile
-├── docker-compose.yml
-├── docker-compose.datos.yml  # Montaje opcional para actualizar datos
-├── requirements.txt
-└── README.md
-```
-
-## Tecnologías
-
-- Python 3.12
-- pandas y NumPy
-- PyArrow y Parquet
-- GeoPandas
-- Plotly y Streamlit
-- pytest y Ruff
-- Docker y Docker Compose
-
-No se utiliza Django ni PostgreSQL.
-
-## Uso con Docker
-
-### Arrancar y comprobar el tablero
+## Pruebas
 
 ```powershell
-docker compose up --build --wait app
-docker compose ps
+docker compose run --rm app python -m pytest tests -q
 ```
 
-Abre <http://127.0.0.1:8501>. Si el puerto ya está en uso, define
-`SONORA_PUERTO=8502` en `.env` y abre el puerto elegido. La imagen verifica
-los archivos de `datos_mvp/` al construirse. Compose espera a que Streamlit
-responda antes de terminar el comando de arranque.
+## Alcance y límites
 
-### Actualizar datos de trabajo
+El tablero mide accesibilidad geográfica potencial. No mide espera dentro del establecimiento, capacidad, calidad, disponibilidad de medicamentos, costo ni transporte público. El TSP y los cierres viales son simulaciones sobre la red disponible.
 
-La configuración adicional monta el directorio del proyecto para guardar
-los resultados de los pipelines en el equipo.
-
-```powershell
-docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.pipeline
-```
-
-### Descargar una sola fuente
-
-```powershell
-make download FUENTE=SALUD-001          # local
-make docker-download FUENTE=SALUD-001   # con Docker
-```
-
-La descarga se valida y queda registrada en `catalog/ingestions.csv`. Si el archivo ya existe, no se vuelve a
-descargar; si su huella no coincide con la registrada, se detiene.
-
-### Ejecutar las pruebas
-
-```powershell
-docker compose run --rm app python -m pytest tests -v
-docker compose run --rm -w /project/enigh-sonora-main app python -m pytest tests -v
-```
-
-### Detener el proyecto
-
-```powershell
-docker compose down
-```
-
-## Resultados
-
-Con el ruteo completo (18 de octubre de 2026). Una localidad tiene **acceso comprometido** si está a más de
-60 min de la atención básica más cercana (unidad de primer nivel u hospital) o a más de 120 min de un hospital. Los umbrales están en
-`config/fuentes_health.yaml`.
-
-- **21,560 personas (0.73 % del estado) en 882 localidades tienen acceso comprometido**, en 53 de los 72
-  municipios.
-- **La brecha está en el hospital.** El 99.46 % de la población vive a 30 min o menos de la atención básica más cercana,
-  pero 20,520 personas viven a más de 2 horas de un hospital y 9,822 a más de 3. El 85 % de las personas con
-  acceso comprometido tiene la atención básica cerca y el hospital lejos.
-- **Se concentra en la sierra y en el desierto.** Yécora (4,793), Pitiquito (3,371), Sáric (2,042), Álamos
-  (1,211) y Suaqui Grande (1,114) reúnen el 58 %. En Yécora, Suaqui Grande, Onavas y San Javier afecta a toda la
-  población del municipio.
-- **No son solo ranchos aislados.** 40 localidades de 100 habitantes o más tienen acceso comprometido, como
-  Puerto Libertad (2,750 habitantes, 172 min al hospital), Yécora (2,453; 182 min) y Sásabe (977; 199 min).
-- **Los grupos vulnerables están sobrerrepresentados.** Frente al 0.73 % de la población general, tiene acceso
-  comprometido el 1.48 % de los hablantes de lengua indígena (el doble), el 1.09 % de quienes no tienen
-  afiliación a servicios de salud, el 0.98 % de las personas de 60 años y más y el 0.91 % de las personas con
-  discapacidad.
-- **El resultado depende del umbral.** Con 90 min al hospital serían 39,835 personas; con 60 min, 99,333.
-
-Dónde verlo:
-
-- **Tablero:** `make app` o `docker compose up --build --wait app`. Abre <http://127.0.0.1:8501>.
-- **Análisis completo:** `notebooks/2.0-dd-analisis-accesibilidad.ipynb`.
-- **Figuras para presentaciones:** `reports/figures/*.png`, que genera el notebook al ejecutarse. Los `.html`
-  interactivos no se versionan, porque el mapa puede llevar la llave de CARTO.
-- **Tabla final:** `data/processed/accesibilidad_localidades.parquet`, una fila por localidad (7,297) con el
-  establecimiento de 1er y 2do nivel más cercano, la distancia y el tiempo a cada uno, el origen del tiempo y
-  las variables de vulnerabilidad. Sus 34 columnas están descritas en
-  `references/diccionario_accesibilidad_localidades.md`.
-
-Fuente de los tiempos: INEGI, API de Ruteo SAKBÉ v3.1 (consultas del 16 al 18 de octubre de 2026). Son para
-automóvil en condiciones óptimas.
-
-## Estado
-
-- [x] Problema y alcance definidos.
-- [x] Estructura Cookiecutter Data Science.
-- [x] Configuración de Docker y tablero Streamlit.
-- [x] Catálogo de fuentes e ingesta configurable.
-- [x] Limpieza y validación de ITER, CONEVAL y CLUES.
-- [x] Dataset consolidado por localidad.
-- [x] Cliente de la API SAKBÉ (token, caché, cuota y reintentos).
-- [x] Integración de SAKBÉ en el cálculo de ruteo (completo: 7,239 de 7,297 localidades con ambos niveles medidos, el 99.99 % de la población).
-- [x] Indicadores de accesibilidad y vulnerabilidad (`src/health_data/analisis.py` y `notebooks/2.0-dd-analisis-accesibilidad.ipynb`).
-- [x] Revisión manual de coordenadas de CLUES (58 verificadas, 12 fuera de operación).
-- [x] Registro de descargas con huella SHA-256 (`catalog/ingestions.csv`).
-- [x] Validación de la estimación por línea recta y del respaldo CONEVAL contra las rutas reales.
-- [x] Diccionario de la tabla final (`references/diccionario_accesibilidad_localidades.md`).
-- [x] Estimación por línea recta recalibrada con las rutas de Sonora (solo es el último recurso).
-- [ ] Tiempo dentro del establecimiento (espera y atención).
-
-### API SAKBÉ
-
-El cliente está en `src/health_data/ingestion/sakbe.py`. Requiere un token de
-INEGI ([solicitarlo aquí](https://gaia.inegi.org.mx/sakbe_v3.1/genera_token.jsp)):
-
-```bash
-cp .env.example .env   #colocar SAKBE_TOKENS=<token1>,<token2>
-docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.ingestion.sakbe           # estado de cuota y caché
-docker compose -f docker-compose.yml -f docker-compose.datos.yml run --rm app python -m health_data.ingestion.sakbe --probar  # ruta de prueba
-```
-
-- Las respuestas se guardan en `data/interim/sakbe_cache.sqlite`; una consulta
-  repetida (incluso si no hubo ruta) no vuelve a gastar cuota.
-- Cada petición real se contabiliza por día y por token. Al llegar a
-  `limite_diario` (`config/fuentes_health.yaml`, 10,000 por token), o si el
-  servidor rechaza un token, el cliente pasa al siguiente. Cuando todos se
-  agotan se detiene con `SakbeCuotaAgotada`.
-- Cada ruta guarda su fecha de consulta (`consultado_en`), ya que la red se
-  actualiza cada año.
-
-### Estado actual del ruteo
-
-Para cada localidad se eligen los **2 establecimientos más cercanos en línea
-recta** por nivel de atención y se mide con SAKBÉ la ruta real por carretera a
-cada uno; se conserva el de menor tiempo. Si SAKBÉ no ubica a un establecimiento en
-su red o no da ruta hacia él, se usa el siguiente más cercano (hasta 3 de respaldo). Las localidades se procesan de mayor a
-menor población.
-
-```bash
-make rutas         # consulta SAKBÉ hasta agotar la cuota del día; reanudable
-make data          # reconstruye la tabla usando solo rutas en caché (sin gastar cuota)
-```
-
-El ruteo está completo (18 de octubre de 2026): 7,239 localidades tienen ambos
-niveles medidos con SAKBÉ, 2 solo uno y 56 ninguno porque no tienen carretera
-cercana. A esas 58 localidades (241 habitantes) se les asigna con CONEVAL el
-nivel que falta (ver abajo). Las localidades aún no consultadas también usan ese
-respaldo; la estimación por línea recta queda solo como último recurso. La
-columna `routing_status` indica el origen de cada fila:
-
-| Valor | Significado |
-|---|---|
-| `ok` | Ambos niveles medidos con SAKBÉ |
-| `parcial` | Solo un nivel medido con SAKBÉ (SAKBÉ no ubica en su red a los candidatos del otro); el otro, con CONEVAL |
-| `sin_ruta` | SAKBÉ no encontró carretera cercana; tiempo asignado con CONEVAL |
-| `estimado` | Aún no consultada; tiempo asignado con CONEVAL (o la estimación, si faltan datos) |
-
-**Localidades excluidas.** Las 3 localidades de la Isla del Tiburón (16 habitantes) se excluyen del ruteo y
-del análisis: no tienen acceso por carretera y parecen campamentos de pesca, no localidades permanentes. La
-lista y el motivo están en `config/fuentes_health.yaml` (`localidades_excluidas`).
-
-**Respaldo con CONEVAL.** A los niveles sin ruta SAKBÉ (localidades `sin_ruta`, `parcial` o `estimado`) se les
-asigna la mediana del tiempo y la distancia medidos con SAKBÉ en las localidades del mismo municipio y con la
-misma categoría de tiempo al centro de servicios de CONEVAL (si son menos de 5, la mediana estatal de esa
-categoría, también con al menos 5). Con validación cruzada contra las rutas reales, en localidades a 2 km o más
-de carretera pavimentada acierta el lado del umbral en ~90 % (hospital, 120 min) y ~83 % (centro de salud,
-60 min).
-
-**Estimación por línea recta (último recurso).** Si tampoco hay rutas suficientes para el respaldo, se usa la
-distancia en línea recta × un factor de rodeo, a velocidades por tramo. Se calibró con las 7,213 rutas SAKBÉ
-de Sonora (antes: factor 1.28 y 35, 50, 70 y 85 km/h, que subestimaba ~40 min al hospital en zonas alejadas):
-
-| Nivel | Factor de rodeo | Velocidad por tramo (≤ 5, 5–25, 25–60, > 60 km) |
-|---|---|---|
-| Centro de salud | 1.57 | 37, 49, 48 y 47 km/h |
-| Hospital | 1.40 | 39, 51, 59 y 62 km/h |
-
-En localidades alejadas acierta el umbral en ~80–82 %, contra ~72 % de la anterior y ~83–90 % del respaldo con
-CONEVAL. Ni SAKBÉ ni la estimación miden cómo maneja la gente en cada lugar: SAKBÉ asigna a cada tramo una
-velocidad según el tipo de vía, igual en todo el estado.
-
-`primary_method` y `secondary_method` indican `sakbe`, `coneval` o `estimado` por nivel, y
-`routing_consulted_at` la fecha de consulta. La validación
-`cobertura_ruteo_sakbe` exige al menos 70 % de localidades en `ok`.
-
-## Alcance y limitaciones
-
-El proyecto mide accesibilidad geográfica potencial: el tiempo de traslado en automóvil en condiciones óptimas
-al establecimiento más cercano. No mide costos, calidad, capacidad hospitalaria, disponibilidad de medicamentos,
-transporte público ni el tiempo dentro del establecimiento (espera y atención), que se analizará después. Para
-quien no tiene vehículo, el tiempo real es mayor.
-
-Las 58 localidades sin ruta SAKBÉ en algún nivel (241 habitantes) usan un respaldo con CONEVAL, que es una
-aproximación, y se excluyen 3 localidades de la Isla del Tiburón sin acceso por carretera. Los resultados
-difundidos deben citar a INEGI y a la API de Ruteo, como piden sus condiciones de uso.
-
-## Equipo
+Para actualizar el MVP, genera nuevos datos con los pipelines, revisa el reporte de comparación y publica una nueva versión con `python -m health_data.publicar_mvp --version <versión>`.
 
 Proyecto académico de la Maestría en Ciencia de Datos de la Universidad de Sonora.
